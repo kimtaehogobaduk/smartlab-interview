@@ -1,4 +1,3 @@
-import logoAsset from "@/assets/smartlab-logo.png.asset.json";
 import { cn } from "@/lib/utils";
 
 export function Brand({
@@ -13,7 +12,7 @@ export function Brand({
   return (
     <div className={cn("flex items-center gap-3", className)}>
       <img
-        src={logoAsset.url}
+        src="/smartlab-logo.png"
         alt="SmartLab 로고"
         width={size}
         height={size}

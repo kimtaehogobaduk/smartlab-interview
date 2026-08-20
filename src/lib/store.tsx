@@ -101,7 +101,80 @@ const SEED: AppState = {
       status: "READY",
     },
   ],
-  candidates: [],
+  candidates: [
+    {
+      id: "candidate-minjun",
+      roomId: "room-a",
+      name: "김민준",
+      track: "웹개발",
+      studentId: "20261234",
+      phone: "010-1234-5678",
+      email: "minjun@example.com",
+      timeslot: { start: "14:00", end: "14:30", room: "A 면접실" },
+      status: "PENDING",
+      documents: [
+        {
+          id: "doc-minjun",
+          title: "지원서",
+          type: "application",
+          contentSnippet: "서비스 성능 개선 프로젝트 경험",
+          rawText:
+            "React와 TypeScript 기반의 동아리 홈페이지를 개발했습니다. 이미지 최적화와 캐싱을 적용해 초기 로딩 시간을 42% 줄였고, 팀원들과 배포 프로세스를 정리했습니다.",
+        },
+      ],
+      sttTranscript: [],
+      aiInsights: { realtimeSummaries: [], tailQuestions: [], contradictions: [] },
+      mindMap: [],
+    },
+    {
+      id: "candidate-seoyeon",
+      roomId: "room-a",
+      name: "박서연",
+      track: "AI 엔지니어링",
+      studentId: "20265678",
+      phone: "010-2345-6789",
+      email: "seoyeon@example.com",
+      timeslot: { start: "14:35", end: "15:05", room: "A 면접실" },
+      status: "PENDING",
+      documents: [
+        {
+          id: "doc-seoyeon",
+          title: "지원서",
+          type: "application",
+          contentSnippet: "검색 증강 생성 챗봇 프로토타입",
+          rawText:
+            "검색 증강 생성 기반의 학습 도우미를 팀 프로젝트로 만들었습니다. 평가셋을 직접 설계하고 답변 근거를 함께 노출하는 방식을 실험했습니다.",
+        },
+      ],
+      sttTranscript: [],
+      aiInsights: { realtimeSummaries: [], tailQuestions: [], contradictions: [] },
+      mindMap: [],
+    },
+    {
+      id: "candidate-hyunwoo",
+      roomId: "room-a",
+      name: "이현우",
+      track: "데이터 분석",
+      studentId: "20264512",
+      phone: "010-3456-7890",
+      email: "hyunwoo@example.com",
+      timeslot: { start: "15:10", end: "15:40", room: "A 면접실" },
+      status: "PENDING",
+      documents: [
+        {
+          id: "doc-hyunwoo",
+          title: "지원서",
+          type: "application",
+          contentSnippet: "사용자 행동 데이터 대시보드",
+          rawText:
+            "학회 운영 데이터를 분석해 이탈 구간을 찾고, 운영진이 바로 확인할 수 있는 대시보드를 만들었습니다. 가설을 세우고 실험 결과로 개선안을 제안했습니다.",
+        },
+      ],
+      sttTranscript: [],
+      aiInsights: { realtimeSummaries: [], tailQuestions: [], contradictions: [] },
+      mindMap: [],
+    },
+  ],
   submissions: [],
   auditLogs: [],
 };
@@ -262,7 +335,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setInsights: (id, insights) => {
         setState((prev) => ({
           ...prev,
-          candidates: prev.candidates.map((c) => (c.id === id ? { ...c, aiInsights: insights } : c)),
+          candidates: prev.candidates.map((c) =>
+            c.id === id ? { ...c, aiInsights: insights } : c,
+          ),
         }));
       },
       setMindMap: (id, nodes) => {

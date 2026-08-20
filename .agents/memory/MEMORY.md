@@ -1,0 +1,1 @@
+- [Lovable asset portability](lovable-assets.md) — serve user-facing static assets from public/ when the app must run in both Lovable and Replit.
