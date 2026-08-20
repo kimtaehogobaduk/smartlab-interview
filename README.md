@@ -10,7 +10,7 @@
 1.2. 핵심 설계 철학 (Core Design Principles)
 Strict Role Separation & Governance: 관리자(Admin)의 엄격한 평가 기준/가중치 확정(Lock) 없이는 어떤 면접관도 평가를 임의로 조작하거나 제출할 수 없음.
 Double-Blind Evaluation: 면접 진행 중에는 타 면접관의 채점표를 가려 상호 동조를 방지하고, 제출 상태(Status)만 실시간 공유.
-Multimodal AI Assistance: Gemini 3.7 Flash 비전 모델과 초고속 LLM(Groq/Llama-3.3-70b)을 결합하여 일정표 이미지 OCR, 실시간 STT(음성 인식), 꼬리질문 생성, 서류 마인드맵 구축을 무중단 지원.
+Multimodal AI Assistance: Groq의 Llama 계열 텍스트·비전 모델을 사용하여 일정표 이미지 OCR, 실시간 STT(음성 인식), 꼬리질문 생성, 서류 마인드맵 구축을 지원.
 Fail-safe Resilience: AI 서비스 지연이나 네트워크 불안정 시에도 로컬 정규식 휴리스틱 파서와 로컬 계산 엔진이 즉시 가동되는 이중 안전망 구축.
 2. 시스템 아키텍처 및 기술 스택 (System Architecture)
 code
@@ -37,14 +37,14 @@ Code
 │   • /api/ai/qualitative-synthesis, /api/ai/mindmap                     │
 │                                                                        │
 │  Dual AI Orchestration Engine:                                         │
-│   • Primary: Groq Cloud API (Llama-3.3-70b-versatile, ~300ms latency)  │
-│   • Multimodal & Fallback: Google Gemini API (gemini-3.7-flash)        │
+│   • Text: Groq Cloud API (Llama-3.3-70b-versatile)                    │
+│   • Vision: Groq Cloud API (Llama 4 Scout)                            │
 │   • Rule-based Fallback: heuristicParseUniversalData (Regex / Local)   │
 └────────────────────────────────────────────────────────────────────────┘
 기술 명세표
 Frontend: React 18.3, TypeScript 5.5, Tailwind CSS, Lucide Icons, Web Speech API.
 Backend: Express 4.x / tsx runtime, Bundled with esbuild CommonJS.
-AI Model Pipeline: @google/genai (Gemini 3.7 Flash Multimodal), Groq Cloud API.
+AI Model Pipeline: Groq Cloud API (Llama text + vision models).
 State & Persistence: In-Memory Cache + Persistent File/Cloud Storage.
 3. 화면별 상세 기능 및 비즈니스 로직 (Feature Specifications)
 3.1. 랜딩 페이지 및 역할별 진입 허브 (LandingEntryPage.tsx & LoginPage.tsx)
@@ -82,11 +82,11 @@ B. 면접실(Room) 및 심사위원단(Panel) CRUD
 C. 감사 로그 추적기 (AdminAuditModal.tsx)
 어드민의 기준 확정, 가중치 변경, 지원자 추가/삭제, 방 설정 변경 이력을 타임스탬프, 변경자, 변경 상세 사유와 함께 불변(Immutable) 감사 로그로 조회.
 3.3. 만능 데이터 파서 & 순차적 시간표 생성기 (UniversalParserModal.tsx)
-A. 비정형 데이터 입력 및 Gemini 3.7 Vision OCR
+A. 비정형 데이터 입력 및 Groq Vision OCR
 비정형 텍스트 파싱:
 엑셀 시트에서 복사한 탭 구분 텍스트, 슬래시(/) 구분 텍스트, 카카오톡 공지 텍스트를 자동 토큰화.
 이미지 비전 판독 (Multimodal Image OCR):
-시간표 캡처 사진, 명단 이미지(PNG, JPG, WebP)를 드래그 앤 드롭하면 Base64로 인코딩하여 Gemini 3.7 Flash 모델로 전송.
+시간표 캡처 사진, 명단 이미지(PNG, JPG, WebP)를 드래그 앤 드롭하면 Base64로 인코딩하여 Groq Vision 모델로 전송.
 이미지 속 복잡한 표 구조, 격자형 타임테이블을 분석하여 인원별 이름, 트랙, 시간을 완벽 추출.
 B. 무충돌 순차적 타임슬롯 자동 스케줄링
 계산 공식:

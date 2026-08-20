@@ -1,5 +1,7 @@
-const GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
-const MODEL = "google/gemini-3.7-flash";
+const GROQ_GATEWAY = "https://api.groq.com/openai/v1/chat/completions";
+const TEXT_MODEL = process.env["GROQ_TEXT_MODEL"] ?? "llama-3.3-70b-versatile";
+const VISION_MODEL =
+  process.env["GROQ_VISION_MODEL"] ?? "meta-llama/llama-4-scout-17b-16e-instruct";
 
 type Content =
   | string
@@ -9,17 +11,18 @@ export async function callGatewayJson(
   system: string,
   user: Content,
 ): Promise<Record<string, unknown>> {
-  const key = process.env["LOVABLE_API_KEY"];
-  if (!key) throw new Error("LOVABLE_API_KEY가 설정되지 않았습니다.");
+  const key = process.env["GROQ_API_KEY"];
+  if (!key) throw new Error("GROQ_API_KEY가 설정되지 않았습니다.");
+  const model = Array.isArray(user) ? VISION_MODEL : TEXT_MODEL;
 
-  const response = await fetch(GATEWAY, {
+  const response = await fetch(GROQ_GATEWAY, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Lovable-API-Key": key,
+      Authorization: `Bearer ${key}`,
     },
     body: JSON.stringify({
-      model: MODEL,
+      model,
       response_format: { type: "json_object" },
       messages: [
         { role: "system", content: system },
