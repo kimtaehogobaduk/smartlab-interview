@@ -16,6 +16,7 @@ import {
   Radio,
   ShieldCheck,
   Sparkles,
+  Trash2,
   Trophy,
   Users,
   X,
@@ -38,6 +39,7 @@ import type {
   InterviewRoomItem,
 } from "@/lib/types";
 import { uid } from "@/lib/store";
+import { verifyAdminCode } from "@/lib/auth.functions";
 
 export function AppShell({
   children,
@@ -168,6 +170,27 @@ export function CriteriaEditor() {
         weight: preset.weights[i] ?? 0,
       })),
     }));
+  const addItem = () =>
+    setDraft((prev) => ({
+      ...prev,
+      isConfirmed: false,
+      items: [
+        ...prev.items,
+        {
+          id: uid("criterion"),
+          name: "새 평가 항목",
+          weight: 0,
+          description: "이 항목에서 확인할 행동과 근거를 입력하세요.",
+          maxScore: 100,
+        },
+      ],
+    }));
+  const removeItem = (id: string) =>
+    setDraft((prev) => ({
+      ...prev,
+      isConfirmed: false,
+      items: prev.items.length > 1 ? prev.items.filter((item) => item.id !== id) : prev.items,
+    }));
   const confirm = () => {
     if (total !== 100) return;
     setCriteria(
@@ -188,26 +211,54 @@ export function CriteriaEditor() {
       <div className="grid gap-3">
         {draft.items.map((item) => (
           <Card key={item.id} className="border-border bg-card/50">
-            <CardContent className="grid gap-3 p-4 md:grid-cols-[1.2fr_100px_2fr] md:items-center">
-              <div>
+            <CardContent className="grid gap-3 p-4">
+              <div className="grid gap-3 md:grid-cols-[1.2fr_100px_100px_auto] md:items-center">
                 <Input
                   value={item.name}
                   onChange={(e) => updateItem(item.id, { name: e.target.value })}
                   className="font-medium"
+                  placeholder="평가 항목명"
                 />
-                <p className="mt-2 text-xs text-muted-foreground">{item.description}</p>
+                <label className="text-xs text-muted-foreground">
+                  가중치 %
+                  <Input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={item.weight}
+                    onChange={(e) => updateItem(item.id, { weight: Number(e.target.value) })}
+                    className="mt-1"
+                  />
+                </label>
+                <label className="text-xs text-muted-foreground">
+                  만점
+                  <Input
+                    type="number"
+                    min={1}
+                    max={1000}
+                    value={item.maxScore}
+                    onChange={(e) =>
+                      updateItem(item.id, { maxScore: Math.max(Number(e.target.value) || 1, 1) })
+                    }
+                    className="mt-1"
+                  />
+                </label>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => removeItem(item.id)}
+                  disabled={draft.items.length <= 1}
+                  aria-label={`${item.name} 삭제`}
+                >
+                  <Trash2 />
+                </Button>
               </div>
-              <label className="text-xs text-muted-foreground">
-                가중치 %
-                <Input
-                  type="number"
-                  min={0}
-                  max={100}
-                  value={item.weight}
-                  onChange={(e) => updateItem(item.id, { weight: Number(e.target.value) })}
-                  className="mt-1"
-                />
-              </label>
+              <Textarea
+                value={item.description}
+                onChange={(e) => updateItem(item.id, { description: e.target.value })}
+                placeholder="이 항목에서 확인할 행동, 근거, 평가 기준을 입력하세요."
+                className="min-h-16 text-sm"
+              />
               <div className="h-2 overflow-hidden rounded-full bg-secondary">
                 <div
                   className="h-full rounded-full bg-primary transition-all"
@@ -218,6 +269,9 @@ export function CriteriaEditor() {
           </Card>
         ))}
       </div>
+      <Button variant="outline" onClick={addItem}>
+        <Plus /> 평가 항목 추가
+      </Button>
       <div
         className={`flex flex-wrap items-center justify-between gap-4 rounded-lg border p-4 ${total === 100 ? "border-success/40 bg-success/5" : "border-warning/40 bg-warning/5"}`}
       >
@@ -238,6 +292,200 @@ export function CriteriaEditor() {
         </Button>
       </div>
     </div>
+  );
+}
+
+export function VisualMindMap({
+  candidateName,
+  track,
+  nodes,
+}: {
+  candidateName: string;
+  track: string;
+  nodes: Candidate["mindMap"];
+}) {
+  const fallback: Candidate["mindMap"] = [
+    { id: "strength", category: "STRENGTH", label: "문제 구조화", evidence: "" },
+    { id: "project", category: "PROJECT", label: "대표 프로젝트", evidence: "" },
+    { id: "tech", category: "TECH", label: track, evidence: "" },
+    { id: "verify", category: "VERIFY", label: "기여 범위 검증", evidence: "" },
+  ];
+  const source = nodes.length ? nodes : fallback;
+  const groups = [
+    { key: "STRENGTH" as const, label: "강점", x: 88, y: 62, color: "var(--primary)" },
+    { key: "PROJECT" as const, label: "프로젝트", x: 472, y: 62, color: "var(--accent)" },
+    { key: "TECH" as const, label: "기술 스택", x: 88, y: 258, color: "var(--chart-4)" },
+    { key: "VERIFY" as const, label: "검증 필요", x: 472, y: 258, color: "var(--warning)" },
+  ];
+  return (
+    <div className="overflow-hidden rounded-lg border border-border bg-secondary/20 p-2">
+      <svg
+        viewBox="0 0 560 320"
+        className="h-auto w-full"
+        role="img"
+        aria-label="지원자 역량 마인드맵"
+      >
+        <defs>
+          <filter id="mindmap-glow">
+            <feGaussianBlur stdDeviation="3" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+        {groups.map((group) => (
+          <g key={group.key}>
+            <line
+              x1="280"
+              y1="160"
+              x2={group.x}
+              y2={group.y}
+              stroke={group.color}
+              strokeOpacity="0.35"
+              strokeWidth="2"
+            />
+            <circle
+              cx={group.x}
+              cy={group.y}
+              r="31"
+              fill="var(--card)"
+              stroke={group.color}
+              strokeWidth="2"
+            />
+            <text
+              x={group.x}
+              y={group.y + 4}
+              textAnchor="middle"
+              fill={group.color}
+              fontSize="11"
+              fontWeight="600"
+            >
+              {group.label}
+            </text>
+            {source
+              .filter((node) => node.category === group.key)
+              .slice(0, 2)
+              .map((node, index) => {
+                const offset = index === 0 ? -18 : 18;
+                const nodeX = group.x + (group.x < 280 ? 74 : -74);
+                const nodeY = group.y + offset;
+                return (
+                  <g key={node.id}>
+                    <line
+                      x1={group.x}
+                      y1={group.y}
+                      x2={nodeX}
+                      y2={nodeY}
+                      stroke={group.color}
+                      strokeOpacity="0.3"
+                    />
+                    <circle
+                      cx={nodeX}
+                      cy={nodeY}
+                      r="5"
+                      fill={group.color}
+                      filter="url(#mindmap-glow)"
+                    />
+                    <text
+                      x={nodeX + (nodeX < 280 ? 10 : -10)}
+                      y={nodeY + 4}
+                      textAnchor={nodeX < 280 ? "start" : "end"}
+                      fill="var(--foreground)"
+                      fontSize="10"
+                    >
+                      {node.label.slice(0, 18)}
+                    </text>
+                  </g>
+                );
+              })}
+          </g>
+        ))}
+        <circle
+          cx="280"
+          cy="160"
+          r="47"
+          fill="var(--card)"
+          stroke="var(--primary)"
+          strokeWidth="2"
+          filter="url(#mindmap-glow)"
+        />
+        <text
+          x="280"
+          y="156"
+          textAnchor="middle"
+          fill="var(--foreground)"
+          fontSize="14"
+          fontWeight="700"
+        >
+          {candidateName.slice(0, 8)}
+        </text>
+        <text x="280" y="176" textAnchor="middle" fill="var(--muted-foreground)" fontSize="10">
+          {track}
+        </text>
+      </svg>
+    </div>
+  );
+}
+
+export function AdminGate({ children }: { children: React.ReactNode }) {
+  const [authenticated, setAuthenticated] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      window.sessionStorage.getItem("smartlab-admin") === "verified",
+  );
+  const [code, setCode] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  if (authenticated) return <>{children}</>;
+  const login = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const result = await verifyAdminCode({ data: { code } });
+      if (!result.valid) {
+        setError("관리자 인증 코드가 올바르지 않습니다.");
+        return;
+      }
+      window.sessionStorage.setItem("smartlab-admin", "verified");
+      setAuthenticated(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "관리자 인증을 확인하지 못했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  };
+  return (
+    <main className="hero-ambient grid-bg flex min-h-screen items-center justify-center px-5">
+      <Card className="w-full max-w-md border-primary/30 bg-card/90">
+        <CardHeader>
+          <Brand size={42} />
+          <CardTitle className="mt-6 flex items-center gap-2">
+            <LockKeyhole className="size-5 text-primary" /> 관리자 인증
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            관리자 인증 후 운영 콘솔에 접근할 수 있습니다.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Input
+            type="password"
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && login()}
+            placeholder="관리자 인증 코드"
+            autoFocus
+          />
+          {error ? <p className="text-sm text-destructive">{error}</p> : null}
+          <Button className="w-full" onClick={login} disabled={loading || !code}>
+            {loading ? "확인 중..." : "관리자 포털 입장"}
+          </Button>
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            인증 코드는 서버에서만 검증되며 브라우저에 저장되지 않습니다.
+          </p>
+        </CardContent>
+      </Card>
+    </main>
   );
 }
 

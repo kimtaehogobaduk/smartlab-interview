@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { CheckCircle2, FileText, LockKeyhole, Mic, Send, Sparkles, Target } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { AppShell } from "@/components/smartlab-ui";
+import { AppShell, VisualMindMap } from "@/components/smartlab-ui";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -131,25 +131,11 @@ function InterviewRoomPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 gap-2">
-                {(candidate.mindMap.length
-                  ? candidate.mindMap
-                  : [
-                      { id: "a", category: "STRENGTH", label: "문제 구조화" },
-                      { id: "b", category: "PROJECT", label: "대표 프로젝트" },
-                      { id: "c", category: "TECH", label: candidate.track },
-                      { id: "d", category: "VERIFY", label: "기여 범위 검증" },
-                    ]
-                ).map((node) => (
-                  <div
-                    key={node.id}
-                    className="rounded border border-border bg-secondary/30 p-3 text-xs"
-                  >
-                    <div className="mb-2 size-2 rounded-full bg-primary" />
-                    <span className="font-medium">{node.label}</span>
-                  </div>
-                ))}
-              </div>
+              <VisualMindMap
+                candidateName={candidate.name}
+                track={candidate.track}
+                nodes={candidate.mindMap}
+              />
             </CardContent>
           </Card>
         </section>
