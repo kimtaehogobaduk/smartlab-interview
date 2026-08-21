@@ -82,12 +82,17 @@ export interface EvaluationSubmission {
   roomId: string;
   interviewerName: string;
   submittedAt: string;
-  scores: { criterionId: string; criterionName: string; score: number; weight: number }[];
+  scores: {
+    criterionId: string;
+    criterionName: string;
+    score: number;
+    bonusPoints: number;
+    weight: number;
+  }[];
   totalWeightedScore: number;
   qualitativeFeedback: {
     strengths: string;
     improvements: string;
-    finalVerdict: "PASS" | "FAIL" | "HOLD";
   };
 }
 

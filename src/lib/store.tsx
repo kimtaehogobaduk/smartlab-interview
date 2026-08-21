@@ -365,7 +365,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               at: new Date().toISOString(),
               actor: submission.interviewerName,
               action: "채점표 제출",
-              detail: `가중 총점 ${submission.totalWeightedScore}점 · 판정 ${submission.qualitativeFeedback.finalVerdict}`,
+              detail: `가중 총점 ${submission.totalWeightedScore}점 · 등수 산정용 평가 제출`,
             },
             ...prev.auditLogs,
           ],

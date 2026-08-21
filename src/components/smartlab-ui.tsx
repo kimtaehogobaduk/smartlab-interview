@@ -465,13 +465,6 @@ export function Leaderboard({ roomId }: { roomId?: string }) {
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2 font-semibold">
                   {row.name}
-                  {row.passed ? (
-                    <Badge className="bg-success text-success-foreground">합격권</Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-warning">
-                      재검토
-                    </Badge>
-                  )}
                   {row.topCriteria.length ? (
                     <span className="text-[10px] text-warning">TOP {row.topCriteria[0]}</span>
                   ) : null}
@@ -482,9 +475,7 @@ export function Leaderboard({ roomId }: { roomId?: string }) {
               </div>
               <div className="text-right">
                 <div className="font-mono text-xl font-semibold text-primary">{row.finalScore}</div>
-                <div className="text-[10px] text-muted-foreground">
-                  cutoff {state.criteria.passCutoff}
-                </div>
+                <div className="text-[10px] text-muted-foreground">등수 산정 점수</div>
               </div>
             </div>
           ))}

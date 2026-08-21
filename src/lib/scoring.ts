@@ -7,13 +7,15 @@ import type {
 } from "./types";
 
 export function weightedTotal(
-  scores: { criterionId: string; score: number }[],
+  scores: { criterionId: string; score: number; bonusPoints?: number }[],
   items: EvaluationCriterion[],
 ): number {
   let total = 0;
   for (const item of items) {
     const found = scores.find((s) => s.criterionId === item.id);
-    const score = found ? found.score : 0;
+    const score = found
+      ? found.score + Math.min(Math.max(found.bonusPoints ?? 0, 0), found.score * 0.1)
+      : 0;
     total += (score * item.weight) / 100;
   }
   return Math.round(total * 10) / 10;
@@ -51,8 +53,6 @@ export interface LeaderboardItem {
   panelCount: number;
   finalScore: number;
   perCriterion: { criterionId: string; name: string; average: number }[];
-  verdicts: string[];
-  passed: boolean;
   rank: number;
   topCriteria: string[];
 }
@@ -70,7 +70,11 @@ export function buildLeaderboard(
     if (subs.length === 0) continue;
 
     const totals = subs.map((s) =>
-      formula === "mean" ? mean(s.scores.map((x) => x.score)) : s.totalWeightedScore,
+      formula === "mean"
+        ? mean(
+            s.scores.map((x) => x.score + Math.min(Math.max(x.bonusPoints ?? 0, 0), x.score * 0.1)),
+          )
+        : s.totalWeightedScore,
     );
 
     const perCriterion = criteria.items.map((item) => ({
@@ -78,7 +82,14 @@ export function buildLeaderboard(
       name: item.name,
       average:
         Math.round(
-          mean(subs.map((s) => s.scores.find((x) => x.criterionId === item.id)?.score ?? 0)) * 10,
+          mean(
+            subs.map((s) => {
+              const score = s.scores.find((x) => x.criterionId === item.id);
+              return score
+                ? score.score + Math.min(Math.max(score.bonusPoints ?? 0, 0), score.score * 0.1)
+                : 0;
+            }),
+          ) * 10,
         ) / 10,
     }));
 
@@ -90,8 +101,6 @@ export function buildLeaderboard(
       panelCount: subs.length,
       finalScore,
       perCriterion,
-      verdicts: subs.map((s) => s.qualitativeFeedback.finalVerdict),
-      passed: finalScore >= criteria.passCutoff,
       rank: 0,
       topCriteria: [],
     });
@@ -134,7 +143,6 @@ export function toCsv(rows: LeaderboardItem[], criteria: CriteriaConfig): string
     "면접관수",
     "최종점수",
     ...criteria.items.map((c) => `${c.name}(${c.weight}%)`),
-    "합격여부",
   ];
   const body = rows.map((r) => [
     r.rank,
@@ -143,7 +151,6 @@ export function toCsv(rows: LeaderboardItem[], criteria: CriteriaConfig): string
     r.panelCount,
     r.finalScore,
     ...criteria.items.map((c) => r.perCriterion.find((p) => p.criterionId === c.id)?.average ?? 0),
-    r.passed ? "합격권" : "과락/재검토",
   ]);
   return [header, ...body].map((line) => line.join(",")).join("\n");
 }

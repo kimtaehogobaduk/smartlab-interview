@@ -21,20 +21,21 @@ function InterviewRoomPage() {
   const candidate = state.candidates.find((c) => c.id === candidateId);
   const room = state.rooms.find((r) => r.id === roomId);
   const [scores, setScores] = useState<Record<string, number>>({});
-  const [feedback, setFeedback] = useState({
-    strengths: "",
-    improvements: "",
-    verdict: "HOLD" as "PASS" | "FAIL" | "HOLD",
-  });
+  const [bonuses, setBonuses] = useState<Record<string, number>>({});
+  const [feedback, setFeedback] = useState({ strengths: "", improvements: "" });
   const [note, setNote] = useState("");
   const [listening, setListening] = useState(false);
   const total = useMemo(
     () =>
       weightedTotal(
-        state.criteria.items.map((item) => ({ criterionId: item.id, score: scores[item.id] ?? 0 })),
+        state.criteria.items.map((item) => ({
+          criterionId: item.id,
+          score: scores[item.id] ?? 0,
+          bonusPoints: bonuses[item.id] ?? 0,
+        })),
         state.criteria.items,
       ),
-    [scores, state.criteria.items],
+    [bonuses, scores, state.criteria.items],
   );
   useEffect(() => {
     if (candidate?.status === "PENDING") setCandidateStatus(candidate.id, "IN_PROGRESS");
@@ -66,13 +67,13 @@ function InterviewRoomPage() {
         criterionId: item.id,
         criterionName: item.name,
         score: scores[item.id] ?? 0,
+        bonusPoints: Math.min(Math.max(bonuses[item.id] ?? 0, 0), (scores[item.id] ?? 0) * 0.1),
         weight: item.weight,
       })),
       totalWeightedScore: total,
       qualitativeFeedback: {
         strengths: feedback.strengths,
         improvements: feedback.improvements,
-        finalVerdict: feedback.verdict,
       },
     });
     setCandidateStatus(candidate.id, "COMPLETED");
@@ -256,7 +257,12 @@ function InterviewRoomPage() {
                         {item.name}{" "}
                         <span className="text-xs text-muted-foreground">({item.weight}%)</span>
                       </span>
-                      <span className="font-mono text-primary">{scores[item.id] ?? 0}</span>
+                      <span className="font-mono text-primary">
+                        {scores[item.id] ?? 0}
+                        {bonuses[item.id] ? (
+                          <span className="ml-1 text-xs text-warning">+{bonuses[item.id]}</span>
+                        ) : null}
+                      </span>
                     </div>
                     <input
                       type="range"
@@ -268,6 +274,32 @@ function InterviewRoomPage() {
                       onChange={(e) => setScores({ ...scores, [item.id]: Number(e.target.value) })}
                       className="w-full accent-[var(--primary)]"
                     />
+                    <div className="mt-2 flex items-center justify-between gap-3">
+                      <span className="text-xs text-warning">특이 가산점 (+점)</span>
+                      <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                        +
+                        <input
+                          aria-label={`${item.name} 가산점`}
+                          type="number"
+                          min="0"
+                          max={Math.round((scores[item.id] ?? 0) * 0.1 * 10) / 10}
+                          step="0.1"
+                          disabled={!state.criteria.isConfirmed}
+                          value={bonuses[item.id] ?? 0}
+                          onChange={(e) =>
+                            setBonuses({
+                              ...bonuses,
+                              [item.id]: Math.min(
+                                Math.max(Number(e.target.value) || 0, 0),
+                                (scores[item.id] ?? 0) * 0.1,
+                              ),
+                            })
+                          }
+                          className="h-8 w-20 rounded border border-input bg-background px-2 text-right font-mono text-foreground"
+                        />
+                        점 <span>(기본 점수의 최대 10%)</span>
+                      </label>
+                    </div>
                     <p className="mt-1 text-xs text-muted-foreground">{item.description}</p>
                   </label>
                 ))}
@@ -292,18 +324,6 @@ function InterviewRoomPage() {
                   onChange={(e) => setFeedback({ ...feedback, improvements: e.target.value })}
                   placeholder="우려 사항 및 추가 확인"
                 />
-                <div className="grid grid-cols-3 gap-2">
-                  {(["PASS", "HOLD", "FAIL"] as const).map((value) => (
-                    <Button
-                      key={value}
-                      size="sm"
-                      variant={feedback.verdict === value ? "default" : "outline"}
-                      onClick={() => setFeedback({ ...feedback, verdict: value })}
-                    >
-                      {value}
-                    </Button>
-                  ))}
-                </div>
                 <Button className="w-full" disabled={!state.criteria.isConfirmed} onClick={submit}>
                   <CheckCircle2 /> 평가 제출 · {total}점
                 </Button>
