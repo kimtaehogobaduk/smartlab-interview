@@ -14,6 +14,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as RoomsRouteImport } from './routes/rooms'
 import { Route as RoomsIndexRouteImport } from './routes/rooms.index'
 import { Route as RoomsRoomIdRouteImport } from './routes/rooms.$roomId'
+import { Route as RoomsRoomIdIndexRouteImport } from './routes/rooms.$roomId.index'
 import { Route as RoomsRoomIdCandidatesCandidateIdRouteImport } from './routes/rooms.$roomId.candidates.$candidateId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -41,6 +42,11 @@ const RoomsRoomIdRoute = RoomsRoomIdRouteImport.update({
   path: '/$roomId',
   getParentRoute: () => RoomsRoute,
 } as any)
+const RoomsRoomIdIndexRoute = RoomsRoomIdIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => RoomsRoomIdRoute,
+} as any)
 const RoomsRoomIdCandidatesCandidateIdRoute =
   RoomsRoomIdCandidatesCandidateIdRouteImport.update({
     id: '/candidates/$candidateId',
@@ -54,13 +60,14 @@ export interface FileRoutesByFullPath {
   '/rooms': typeof RoomsRouteWithChildren
   '/rooms/$roomId': typeof RoomsRoomIdRouteWithChildren
   '/rooms/': typeof RoomsIndexRoute
+  '/rooms/$roomId/': typeof RoomsRoomIdIndexRoute
   '/rooms/$roomId/candidates/$candidateId': typeof RoomsRoomIdCandidatesCandidateIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
-  '/rooms/$roomId': typeof RoomsRoomIdRouteWithChildren
   '/rooms': typeof RoomsIndexRoute
+  '/rooms/$roomId': typeof RoomsRoomIdIndexRoute
   '/rooms/$roomId/candidates/$candidateId': typeof RoomsRoomIdCandidatesCandidateIdRoute
 }
 export interface FileRoutesById {
@@ -70,6 +77,7 @@ export interface FileRoutesById {
   '/rooms': typeof RoomsRouteWithChildren
   '/rooms/$roomId': typeof RoomsRoomIdRouteWithChildren
   '/rooms/': typeof RoomsIndexRoute
+  '/rooms/$roomId/': typeof RoomsRoomIdIndexRoute
   '/rooms/$roomId/candidates/$candidateId': typeof RoomsRoomIdCandidatesCandidateIdRoute
 }
 export interface FileRouteTypes {
@@ -80,13 +88,14 @@ export interface FileRouteTypes {
     | '/rooms'
     | '/rooms/$roomId'
     | '/rooms/'
+    | '/rooms/$roomId/'
     | '/rooms/$roomId/candidates/$candidateId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/admin'
-    | '/rooms/$roomId'
     | '/rooms'
+    | '/rooms/$roomId'
     | '/rooms/$roomId/candidates/$candidateId'
   id:
     | '__root__'
@@ -95,6 +104,7 @@ export interface FileRouteTypes {
     | '/rooms'
     | '/rooms/$roomId'
     | '/rooms/'
+    | '/rooms/$roomId/'
     | '/rooms/$roomId/candidates/$candidateId'
   fileRoutesById: FileRoutesById
 }
@@ -141,6 +151,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RoomsRoomIdRouteImport
       parentRoute: typeof RoomsRoute
     }
+    '/rooms/$roomId/': {
+      id: '/rooms/$roomId/'
+      path: '/'
+      fullPath: '/rooms/$roomId/'
+      preLoaderRoute: typeof RoomsRoomIdIndexRouteImport
+      parentRoute: typeof RoomsRoomIdRoute
+    }
     '/rooms/$roomId/candidates/$candidateId': {
       id: '/rooms/$roomId/candidates/$candidateId'
       path: '/candidates/$candidateId'
@@ -152,10 +169,12 @@ declare module '@tanstack/react-router' {
 }
 
 interface RoomsRoomIdRouteChildren {
+  RoomsRoomIdIndexRoute: typeof RoomsRoomIdIndexRoute
   RoomsRoomIdCandidatesCandidateIdRoute: typeof RoomsRoomIdCandidatesCandidateIdRoute
 }
 
 const RoomsRoomIdRouteChildren: RoomsRoomIdRouteChildren = {
+  RoomsRoomIdIndexRoute: RoomsRoomIdIndexRoute,
   RoomsRoomIdCandidatesCandidateIdRoute: RoomsRoomIdCandidatesCandidateIdRoute,
 }
 
