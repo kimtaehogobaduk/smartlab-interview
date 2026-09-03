@@ -180,9 +180,10 @@ function InterviewRoomPage() {
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                   placeholder="면접 중 메모 또는 발화를 입력하세요."
+                  aria-label="면접 메모 또는 발화 입력"
                   className="min-h-12"
                 />
-                <Button size="icon" onClick={addNote}>
+                <Button size="icon" onClick={addNote} aria-label="메모 추가">
                   <Send />
                 </Button>
               </div>
@@ -255,10 +256,12 @@ function InterviewRoomPage() {
                       min="0"
                       max="100"
                       step="0.1"
+                      aria-label={`${item.name} 점수`}
+                      aria-valuetext={`${scores[item.id] ?? 0}점`}
                       disabled={!state.criteria.isConfirmed}
                       value={scores[item.id] ?? 0}
                       onChange={(e) => setScores({ ...scores, [item.id]: Number(e.target.value) })}
-                      className="w-full accent-[var(--primary)]"
+                      className="w-full accent-[var(--primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     />
                     <div className="mt-2 flex items-center justify-between gap-3">
                       <span className="text-xs text-warning">특이 가산점 (+점)</span>
@@ -304,11 +307,13 @@ function InterviewRoomPage() {
                   value={feedback.strengths}
                   onChange={(e) => setFeedback({ ...feedback, strengths: e.target.value })}
                   placeholder="강점 및 확인된 근거"
+                  aria-label="강점 및 확인된 근거"
                 />
                 <Textarea
                   value={feedback.improvements}
                   onChange={(e) => setFeedback({ ...feedback, improvements: e.target.value })}
                   placeholder="우려 사항 및 추가 확인"
+                  aria-label="우려 사항 및 추가 확인"
                 />
                 <Button className="w-full" disabled={!state.criteria.isConfirmed} onClick={submit}>
                   <CheckCircle2 /> 평가 제출 · {total}점
