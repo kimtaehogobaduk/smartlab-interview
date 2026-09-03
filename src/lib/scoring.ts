@@ -6,13 +6,19 @@ import type {
   Formula,
 } from "./types";
 
+/**
+ * Calculates weighted total score for evaluation criteria.
+ * Optimization: Uses Map pre-indexing for O(1) criterion lookups instead of O(N) array finds.
+ * Expected Impact: Reduces score calculation time from O(Items * Scores) to O(Items + Scores).
+ */
 export function weightedTotal(
   scores: { criterionId: string; score: number; bonusPoints?: number }[],
   items: EvaluationCriterion[],
 ): number {
+  const scoreMap = new Map(scores.map((s) => [s.criterionId, s]));
   let total = 0;
   for (const item of items) {
-    const found = scores.find((s) => s.criterionId === item.id);
+    const found = scoreMap.get(item.id);
     const score = found
       ? found.score + Math.min(Math.max(found.bonusPoints ?? 0, 0), found.score * 0.1)
       : 0;
@@ -57,41 +63,74 @@ export interface LeaderboardItem {
   topCriteria: string[];
 }
 
+/**
+ * Builds candidate leaderboard sorted by final score and primary criterion tie-breakers.
+ * Performance Optimization:
+ * 1. Pre-groups submissions by candidateId into a Map, eliminating O(Candidates * Submissions) filter operations.
+ * 2. Pre-indexes per-submission scores into Map for O(1) criterion lookup during average aggregation.
+ * 3. Uses temporary Map for tie-breaking comparison during sorting to prevent O(N log N * Criteria) array finds.
+ * 4. Direct candidate reference tracking in topCriteria calculation eliminating O(Criteria * Candidates * Candidates) array searches.
+ * Expected Impact: Reduces leaderboard build time from O(C * S * K * Sc + C log C * K) to O(S * Sc + C * K).
+ */
 export function buildLeaderboard(
   candidates: Candidate[],
   submissions: EvaluationSubmission[],
   criteria: CriteriaConfig,
   formula: Formula,
 ): LeaderboardItem[] {
-  const items: LeaderboardItem[] = [];
+  // Pre-group submissions by candidateId in O(Submissions)
+  const submissionsByCandidate = new Map<string, EvaluationSubmission[]>();
+  for (const sub of submissions) {
+    const list = submissionsByCandidate.get(sub.candidateId);
+    if (list) {
+      list.push(sub);
+    } else {
+      submissionsByCandidate.set(sub.candidateId, [sub]);
+    }
+  }
+
+  type ExtendedLeaderboardItem = LeaderboardItem & {
+    perCriterionMap: Map<string, number>;
+  };
+
+  const items: ExtendedLeaderboardItem[] = [];
 
   for (const candidate of candidates) {
-    const subs = submissions.filter((s) => s.candidateId === candidate.id);
-    if (subs.length === 0) continue;
+    const subs = submissionsByCandidate.get(candidate.id);
+    if (!subs || subs.length === 0) continue;
 
-    const totals = subs.map((s) =>
-      formula === "mean"
-        ? mean(
-            s.scores.map((x) => x.score + Math.min(Math.max(x.bonusPoints ?? 0, 0), x.score * 0.1)),
-          )
-        : s.totalWeightedScore,
+    // Pre-calculate score maps per submission for O(1) criterion lookup
+    const subsWithScoreMaps = subs.map((s) => {
+      const scoreMap = new Map<string, number>();
+      for (const x of s.scores) {
+        const adjusted = x.score + Math.min(Math.max(x.bonusPoints ?? 0, 0), x.score * 0.1);
+        scoreMap.set(x.criterionId, adjusted);
+      }
+      return {
+        totalWeightedScore: s.totalWeightedScore,
+        scoreMap,
+        scoreValues: Array.from(scoreMap.values()),
+      };
+    });
+
+    const totals = subsWithScoreMaps.map((s) =>
+      formula === "mean" ? mean(s.scoreValues) : s.totalWeightedScore,
     );
 
-    const perCriterion = criteria.items.map((item) => ({
-      criterionId: item.id,
-      name: item.name,
-      average:
-        Math.round(
-          mean(
-            subs.map((s) => {
-              const score = s.scores.find((x) => x.criterionId === item.id);
-              return score
-                ? score.score + Math.min(Math.max(score.bonusPoints ?? 0, 0), score.score * 0.1)
-                : 0;
-            }),
-          ) * 10,
-        ) / 10,
-    }));
+    const perCriterionMap = new Map<string, number>();
+    const perCriterion = criteria.items.map((item) => {
+      let sum = 0;
+      for (const s of subsWithScoreMaps) {
+        sum += s.scoreMap.get(item.id) ?? 0;
+      }
+      const avg = Math.round((sum / subsWithScoreMaps.length) * 10) / 10;
+      perCriterionMap.set(item.id, avg);
+      return {
+        criterionId: item.id,
+        name: item.name,
+        average: avg,
+      };
+    });
 
     const finalScore = aggregate(totals, formula);
     items.push({
@@ -101,35 +140,45 @@ export function buildLeaderboard(
       panelCount: subs.length,
       finalScore,
       perCriterion,
+      perCriterionMap,
       rank: 0,
       topCriteria: [],
     });
   }
 
   const primary = [...criteria.items].sort((a, b) => b.weight - a.weight)[0];
+  const primaryId = primary?.id;
+
+  // Sort candidates by finalScore, tie-breaking on primary criterion average via O(1) Map lookup
   items.sort((a, b) => {
     if (b.finalScore !== a.finalScore) return b.finalScore - a.finalScore;
-    if (!primary) return 0;
-    const av = a.perCriterion.find((c) => c.criterionId === primary.id)?.average ?? 0;
-    const bv = b.perCriterion.find((c) => c.criterionId === primary.id)?.average ?? 0;
+    if (!primaryId) return 0;
+    const av = a.perCriterionMap.get(primaryId) ?? 0;
+    const bv = b.perCriterionMap.get(primaryId) ?? 0;
     return bv - av;
   });
+
   items.forEach((item, i) => {
     item.rank = i + 1;
   });
 
+  // Calculate top criterion per criteria item using O(1) Map lookups and direct item tracking
   for (const criterion of criteria.items) {
     let best = -1;
-    let bestId = "";
+    let winner: ExtendedLeaderboardItem | null = null;
     for (const item of items) {
-      const value = item.perCriterion.find((c) => c.criterionId === criterion.id)?.average ?? 0;
+      const value = item.perCriterionMap.get(criterion.id) ?? 0;
       if (value > best) {
         best = value;
-        bestId = item.candidateId;
+        winner = item;
       }
     }
-    const winner = items.find((i) => i.candidateId === bestId);
     if (winner && best > 0) winner.topCriteria.push(criterion.name);
+  }
+
+  // Strip temporary perCriterionMap property before returning clean LeaderboardItem array
+  for (const item of items) {
+    delete (item as { perCriterionMap?: Map<string, number> }).perCriterionMap;
   }
 
   return items;

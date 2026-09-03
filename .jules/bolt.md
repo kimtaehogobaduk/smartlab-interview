@@ -1,0 +1,3 @@
+## 2025-05-18 - Map Pre-Indexing for Score Aggregation Loops
+**Learning:** In candidate evaluation and leaderboard calculations, performing nested array `.find()` lookups across scores and submissions for every criterion results in O(Candidates * Criteria * Submissions * Scores) operations. Pre-indexing submissions by candidate ID and scores by criterion ID into Maps reduces algorithm complexity to O(Submissions * Scores + Candidates * Criteria).
+**Action:** Whenever performing multi-dimensional aggregation or sorting tie-breakers over array lists, construct upfront Map lookup tables to achieve O(1) property access.
