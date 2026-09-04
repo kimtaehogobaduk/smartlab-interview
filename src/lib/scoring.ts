@@ -57,79 +57,139 @@ export interface LeaderboardItem {
   topCriteria: string[];
 }
 
+/**
+ * Calculates effective score including capped bonus points (max 10% of base score).
+ */
+function calcEffectiveScore(score: number, bonusPoints?: number): number {
+  const bonus = bonusPoints ?? 0;
+  return score + Math.min(Math.max(bonus, 0), score * 0.1);
+}
+
+/**
+ * Optimized buildLeaderboard:
+ * 1. Groups submissions by candidateId upfront via Map in O(M) time to eliminate O(N*M) filtering.
+ * 2. Accumulates per-criterion scores during submission iteration in O(M * scores_length) instead of O(N * M * C).
+ * 3. Maps criterion averages to a Lookup Map per item to avoid O(C) array scans during sorting and top-criteria calculations.
+ */
 export function buildLeaderboard(
   candidates: Candidate[],
   submissions: EvaluationSubmission[],
   criteria: CriteriaConfig,
   formula: Formula,
 ): LeaderboardItem[] {
+  // Pre-index submissions by candidateId
+  const subsByCandidate = new Map<string, EvaluationSubmission[]>();
+  for (let i = 0; i < submissions.length; i++) {
+    const s = submissions[i];
+    let list = subsByCandidate.get(s.candidateId);
+    if (!list) {
+      list = [];
+      subsByCandidate.set(s.candidateId, list);
+    }
+    list.push(s);
+  }
+
   const items: LeaderboardItem[] = [];
+  const primary =
+    criteria.items.length > 0
+      ? [...criteria.items].sort((a, b) => b.weight - a.weight)[0]
+      : undefined;
 
-  for (const candidate of candidates) {
-    const subs = submissions.filter((s) => s.candidateId === candidate.id);
-    if (subs.length === 0) continue;
+  // Map to hold per-item criterion average lookup for fast sorting and winner detection
+  const itemCriterionAvgMap = new Map<LeaderboardItem, Map<string, number>>();
 
-    const totals = subs.map((s) =>
-      formula === "mean"
-        ? mean(
-            s.scores.map((x) => x.score + Math.min(Math.max(x.bonusPoints ?? 0, 0), x.score * 0.1)),
-          )
-        : s.totalWeightedScore,
-    );
+  for (let i = 0; i < candidates.length; i++) {
+    const candidate = candidates[i];
+    const subs = subsByCandidate.get(candidate.id);
+    if (!subs || subs.length === 0) continue;
 
-    const perCriterion = criteria.items.map((item) => ({
-      criterionId: item.id,
-      name: item.name,
-      average:
-        Math.round(
-          mean(
-            subs.map((s) => {
-              const score = s.scores.find((x) => x.criterionId === item.id);
-              return score
-                ? score.score + Math.min(Math.max(score.bonusPoints ?? 0, 0), score.score * 0.1)
-                : 0;
-            }),
-          ) * 10,
-        ) / 10,
-    }));
+    const subCount = subs.length;
+    const totals: number[] = new Array(subCount);
+    const criterionSums = new Map<string, number>();
+
+    for (let j = 0; j < subCount; j++) {
+      const s = subs[j];
+      if (formula === "mean") {
+        let sum = 0;
+        const scoresLen = s.scores.length;
+        for (let k = 0; k < scoresLen; k++) {
+          const x = s.scores[k];
+          const eff = calcEffectiveScore(x.score, x.bonusPoints);
+          sum += eff;
+          criterionSums.set(x.criterionId, (criterionSums.get(x.criterionId) ?? 0) + eff);
+        }
+        totals[j] = scoresLen > 0 ? sum / scoresLen : 0;
+      } else {
+        totals[j] = s.totalWeightedScore;
+        const scoresLen = s.scores.length;
+        for (let k = 0; k < scoresLen; k++) {
+          const x = s.scores[k];
+          const eff = calcEffectiveScore(x.score, x.bonusPoints);
+          criterionSums.set(x.criterionId, (criterionSums.get(x.criterionId) ?? 0) + eff);
+        }
+      }
+    }
+
+    const perCriterionAvgMap = new Map<string, number>();
+    const perCriterion = criteria.items.map((item) => {
+      const sum = criterionSums.get(item.id) ?? 0;
+      const average = Math.round((sum / subCount) * 10) / 10;
+      perCriterionAvgMap.set(item.id, average);
+      return {
+        criterionId: item.id,
+        name: item.name,
+        average,
+      };
+    });
 
     const finalScore = aggregate(totals, formula);
-    items.push({
+    const item: LeaderboardItem = {
       candidateId: candidate.id,
       name: candidate.name,
       track: candidate.track,
-      panelCount: subs.length,
+      panelCount: subCount,
       finalScore,
       perCriterion,
       rank: 0,
       topCriteria: [],
-    });
+    };
+
+    itemCriterionAvgMap.set(item, perCriterionAvgMap);
+    items.push(item);
   }
 
-  const primary = [...criteria.items].sort((a, b) => b.weight - a.weight)[0];
+  // Sort items using fast cached map lookups
+  const primaryId = primary?.id;
   items.sort((a, b) => {
     if (b.finalScore !== a.finalScore) return b.finalScore - a.finalScore;
-    if (!primary) return 0;
-    const av = a.perCriterion.find((c) => c.criterionId === primary.id)?.average ?? 0;
-    const bv = b.perCriterion.find((c) => c.criterionId === primary.id)?.average ?? 0;
+    if (!primaryId) return 0;
+    const av = itemCriterionAvgMap.get(a)?.get(primaryId) ?? 0;
+    const bv = itemCriterionAvgMap.get(b)?.get(primaryId) ?? 0;
     return bv - av;
   });
-  items.forEach((item, i) => {
-    item.rank = i + 1;
-  });
 
-  for (const criterion of criteria.items) {
+  for (let i = 0; i < items.length; i++) {
+    items[i].rank = i + 1;
+  }
+
+  // Calculate top criteria winners
+  for (let c = 0; c < criteria.items.length; c++) {
+    const criterion = criteria.items[c];
     let best = -1;
-    let bestId = "";
-    for (const item of items) {
-      const value = item.perCriterion.find((c) => c.criterionId === criterion.id)?.average ?? 0;
+    let winner: LeaderboardItem | null = null;
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      const value = itemCriterionAvgMap.get(item)?.get(criterion.id) ?? 0;
       if (value > best) {
         best = value;
-        bestId = item.candidateId;
+        winner = item;
       }
     }
-    const winner = items.find((i) => i.candidateId === bestId);
-    if (winner && best > 0) winner.topCriteria.push(criterion.name);
+
+    if (winner && best > 0) {
+      winner.topCriteria.push(criterion.name);
+    }
   }
 
   return items;
