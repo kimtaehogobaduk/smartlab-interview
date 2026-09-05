@@ -548,7 +548,10 @@ export function CandidateTable({
                       <Button
                         size="icon"
                         variant="ghost"
+                        className="hover:bg-destructive/10 hover:text-destructive"
                         onClick={() => removeCandidate(candidate.id)}
+                        aria-label={`${candidate.name} 지원자 삭제`}
+                        title={`${candidate.name} 지원자 삭제`}
                       >
                         <X />
                       </Button>
