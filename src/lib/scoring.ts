@@ -6,6 +6,10 @@ import type {
   Formula,
 } from "./types";
 
+function getEffectiveScore(score: number, bonusPoints?: number): number {
+  return score + Math.min(Math.max(bonusPoints ?? 0, 0), score * 0.1);
+}
+
 export function weightedTotal(
   scores: { criterionId: string; score: number; bonusPoints?: number }[],
   items: EvaluationCriterion[],
@@ -13,9 +17,7 @@ export function weightedTotal(
   let total = 0;
   for (const item of items) {
     const found = scores.find((s) => s.criterionId === item.id);
-    const score = found
-      ? found.score + Math.min(Math.max(found.bonusPoints ?? 0, 0), found.score * 0.1)
-      : 0;
+    const score = found ? getEffectiveScore(found.score, found.bonusPoints) : 0;
     total += (score * item.weight) / 100;
   }
   return Math.round(total * 10) / 10;
@@ -23,7 +25,11 @@ export function weightedTotal(
 
 function mean(values: number[]): number {
   if (values.length === 0) return 0;
-  return values.reduce((a, b) => a + b, 0) / values.length;
+  let sum = 0;
+  for (let i = 0; i < values.length; i++) {
+    sum += values[i];
+  }
+  return sum / values.length;
 }
 
 function median(values: number[]): number {
@@ -63,73 +69,135 @@ export function buildLeaderboard(
   criteria: CriteriaConfig,
   formula: Formula,
 ): LeaderboardItem[] {
+  // Pre-group submissions by candidateId to eliminate repeated filter scans: O(S)
+  const subsByCandidate = new Map<string, EvaluationSubmission[]>();
+  for (let i = 0; i < submissions.length; i++) {
+    const sub = submissions[i];
+    let list = subsByCandidate.get(sub.candidateId);
+    if (!list) {
+      list = [];
+      subsByCandidate.set(sub.candidateId, list);
+    }
+    list.push(sub);
+  }
+
   const items: LeaderboardItem[] = [];
+  const candidateItemMap = new Map<string, LeaderboardItem>();
+  // Store map of criterionId -> average for quick tie-break and top-criteria lookup
+  const candidateCriterionAvgMap = new Map<string, Map<string, number>>();
 
-  for (const candidate of candidates) {
-    const subs = submissions.filter((s) => s.candidateId === candidate.id);
-    if (subs.length === 0) continue;
+  for (let c = 0; c < candidates.length; c++) {
+    const candidate = candidates[c];
+    const subs = subsByCandidate.get(candidate.id);
+    if (!subs || subs.length === 0) continue;
 
-    const totals = subs.map((s) =>
-      formula === "mean"
-        ? mean(
-            s.scores.map((x) => x.score + Math.min(Math.max(x.bonusPoints ?? 0, 0), x.score * 0.1)),
-          )
-        : s.totalWeightedScore,
+    const subCount = subs.length;
+    const totals: number[] = new Array(subCount);
+
+    // Pre-calculate mapped scores per submission for efficient criterion averaging
+    const subScoreMaps: Map<string, number>[] = new Array(subCount);
+
+    for (let i = 0; i < subCount; i++) {
+      const s = subs[i];
+      const scoreMap = new Map<string, number>();
+      let sumScores = 0;
+
+      for (let j = 0; j < s.scores.length; j++) {
+        const x = s.scores[j];
+        const eff = getEffectiveScore(x.score, x.bonusPoints);
+        scoreMap.set(x.criterionId, eff);
+        sumScores += eff;
+      }
+      subScoreMaps[i] = scoreMap;
+
+      if (formula === "mean") {
+        totals[i] = s.scores.length > 0 ? sumScores / s.scores.length : 0;
+      } else {
+        totals[i] = s.totalWeightedScore;
+      }
+    }
+
+    const perCriterionList: { criterionId: string; name: string; average: number }[] = new Array(
+      criteria.items.length,
     );
+    const avgMap = new Map<string, number>();
 
-    const perCriterion = criteria.items.map((item) => ({
-      criterionId: item.id,
-      name: item.name,
-      average:
-        Math.round(
-          mean(
-            subs.map((s) => {
-              const score = s.scores.find((x) => x.criterionId === item.id);
-              return score
-                ? score.score + Math.min(Math.max(score.bonusPoints ?? 0, 0), score.score * 0.1)
-                : 0;
-            }),
-          ) * 10,
-        ) / 10,
-    }));
+    for (let k = 0; k < criteria.items.length; k++) {
+      const item = criteria.items[k];
+      let criterionSum = 0;
+
+      for (let i = 0; i < subCount; i++) {
+        criterionSum += subScoreMaps[i].get(item.id) ?? 0;
+      }
+
+      const average = Math.round((criterionSum / subCount) * 10) / 10;
+      perCriterionList[k] = {
+        criterionId: item.id,
+        name: item.name,
+        average,
+      };
+      avgMap.set(item.id, average);
+    }
 
     const finalScore = aggregate(totals, formula);
-    items.push({
+    const item: LeaderboardItem = {
       candidateId: candidate.id,
       name: candidate.name,
       track: candidate.track,
-      panelCount: subs.length,
+      panelCount: subCount,
       finalScore,
-      perCriterion,
+      perCriterion: perCriterionList,
       rank: 0,
       topCriteria: [],
-    });
+    };
+
+    items.push(item);
+    candidateItemMap.set(candidate.id, item);
+    candidateCriterionAvgMap.set(candidate.id, avgMap);
   }
 
-  const primary = [...criteria.items].sort((a, b) => b.weight - a.weight)[0];
+  // Find primary criterion with highest weight without full array copy + sort
+  let primaryCriterion = criteria.items[0] ?? null;
+  for (let k = 1; k < criteria.items.length; k++) {
+    if (criteria.items[k].weight > (primaryCriterion?.weight ?? -1)) {
+      primaryCriterion = criteria.items[k];
+    }
+  }
+
+  // Sort leaderboard items by finalScore, then by primary criterion score
   items.sort((a, b) => {
     if (b.finalScore !== a.finalScore) return b.finalScore - a.finalScore;
-    if (!primary) return 0;
-    const av = a.perCriterion.find((c) => c.criterionId === primary.id)?.average ?? 0;
-    const bv = b.perCriterion.find((c) => c.criterionId === primary.id)?.average ?? 0;
+    if (!primaryCriterion) return 0;
+    const av = candidateCriterionAvgMap.get(a.candidateId)?.get(primaryCriterion.id) ?? 0;
+    const bv = candidateCriterionAvgMap.get(b.candidateId)?.get(primaryCriterion.id) ?? 0;
     return bv - av;
   });
-  items.forEach((item, i) => {
-    item.rank = i + 1;
-  });
 
-  for (const criterion of criteria.items) {
+  for (let i = 0; i < items.length; i++) {
+    items[i].rank = i + 1;
+  }
+
+  // Determine top criteria winner for each criterion using O(1) candidate lookup
+  for (let k = 0; k < criteria.items.length; k++) {
+    const criterion = criteria.items[k];
     let best = -1;
     let bestId = "";
-    for (const item of items) {
-      const value = item.perCriterion.find((c) => c.criterionId === criterion.id)?.average ?? 0;
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      const value = candidateCriterionAvgMap.get(item.candidateId)?.get(criterion.id) ?? 0;
       if (value > best) {
         best = value;
         bestId = item.candidateId;
       }
     }
-    const winner = items.find((i) => i.candidateId === bestId);
-    if (winner && best > 0) winner.topCriteria.push(criterion.name);
+
+    if (best > 0 && bestId) {
+      const winner = candidateItemMap.get(bestId);
+      if (winner) {
+        winner.topCriteria.push(criterion.name);
+      }
+    }
   }
 
   return items;
