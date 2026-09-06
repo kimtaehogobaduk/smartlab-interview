@@ -22,13 +22,16 @@ function RoomLobbyPage() {
       <div className="mx-auto max-w-5xl space-y-8">
         <div className="grid gap-4 md:grid-cols-2">
           {rooms.map((room) => (
-            <button
+            <div
               key={room.id}
+              role="button"
+              tabIndex={0}
               onClick={() => setSelected(room.id)}
-              className={`text-left ${selected === room.id ? "rounded-xl ring-2 ring-primary" : ""}`}
+              onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setSelected(room.id)}
+              className={`cursor-pointer text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${selected === room.id ? "rounded-xl ring-2 ring-primary" : ""}`}
             >
               <RoomCard room={room} />
-            </button>
+            </div>
           ))}
         </div>
         {selected ? (
