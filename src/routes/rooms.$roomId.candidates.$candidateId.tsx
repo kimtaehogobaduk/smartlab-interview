@@ -255,10 +255,11 @@ function InterviewRoomPage() {
                       min="0"
                       max="100"
                       step="0.1"
+                      aria-label={`${item.name} 점수`}
                       disabled={!state.criteria.isConfirmed}
                       value={scores[item.id] ?? 0}
                       onChange={(e) => setScores({ ...scores, [item.id]: Number(e.target.value) })}
-                      className="w-full accent-[var(--primary)]"
+                      className="w-full accent-[var(--primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                     />
                     <div className="mt-2 flex items-center justify-between gap-3">
                       <span className="text-xs text-warning">특이 가산점 (+점)</span>
