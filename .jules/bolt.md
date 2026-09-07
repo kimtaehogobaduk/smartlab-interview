@@ -1,0 +1,3 @@
+## 2025-09-07 - Leaderboard Aggregation & Score Computation Bottlenecks
+**Learning:** High-frequency scoring calculations in React components without memoization combined with O(C * S) nested array filter/find operations cause unnecessary main-thread blocking on state changes and re-renders. Pre-indexing relational data in Map data structures and storing ordered criterion indices converts O(N * S) and O(C * N^2) nested lookups to linear O(N + S) operations.
+**Action:** Always pre-group submissions by candidate/category using Map lookups, use index-based access when arrays share fixed structural order, and memoize leaderboard computations with `useMemo`.
