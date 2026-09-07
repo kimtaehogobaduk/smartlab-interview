@@ -71,8 +71,8 @@ function LandingEntryPage() {
           SMARTLAB<span className="text-primary">INTERVIEW</span>
         </h1>
         <p className="mx-auto mt-5 max-w-2xl text-base text-muted-foreground sm:text-lg">
-          동아리·학회·부트캠프·연구실의 다대일 면접을 위한 운영 콘솔. 기준 확정 없이는 채점이
-          열리지 않고, 편향은 절사평균으로 걷어냅니다.
+          동아리·학회·부트캠프·연구실의 다대일 면접을 위한 운영 콘솔. 기준 확정 없이는 채점이 열리지
+          않고, 편향은 절사평균으로 걷어냅니다.
         </p>
 
         <div className="mt-10 grid gap-4 sm:grid-cols-2">
