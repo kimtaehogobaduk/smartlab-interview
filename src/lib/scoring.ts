@@ -63,11 +63,31 @@ export function buildLeaderboard(
   criteria: CriteriaConfig,
   formula: Formula,
 ): LeaderboardItem[] {
-  const items: LeaderboardItem[] = [];
+  // ⚡ Optimization: Pre-group submissions by candidateId to reduce O(N * S) filtering to O(S + N) lookup
+  const subsByCandidate = new Map<string, EvaluationSubmission[]>();
+  for (const s of submissions) {
+    const list = subsByCandidate.get(s.candidateId);
+    if (list) {
+      list.push(s);
+    } else {
+      subsByCandidate.set(s.candidateId, [s]);
+    }
+  }
+
+  const primaryCriterion =
+    criteria.items.length > 0 ? [...criteria.items].sort((a, b) => b.weight - a.weight)[0] : null;
+  const primaryId = primaryCriterion?.id;
+
+  type InternalItem = LeaderboardItem & {
+    criterionMap?: Map<string, number>;
+    primaryAvg?: number;
+  };
+
+  const items: InternalItem[] = [];
 
   for (const candidate of candidates) {
-    const subs = submissions.filter((s) => s.candidateId === candidate.id);
-    if (subs.length === 0) continue;
+    const subs = subsByCandidate.get(candidate.id);
+    if (!subs || subs.length === 0) continue;
 
     const totals = subs.map((s) =>
       formula === "mean"
@@ -77,10 +97,10 @@ export function buildLeaderboard(
         : s.totalWeightedScore,
     );
 
-    const perCriterion = criteria.items.map((item) => ({
-      criterionId: item.id,
-      name: item.name,
-      average:
+    // ⚡ Optimization: Cache criterion averages in a Map for O(1) lookups during tie-breaker sort and top criteria calculation
+    const criterionMap = new Map<string, number>();
+    const perCriterion = criteria.items.map((item) => {
+      const avg =
         Math.round(
           mean(
             subs.map((s) => {
@@ -90,10 +110,18 @@ export function buildLeaderboard(
                 : 0;
             }),
           ) * 10,
-        ) / 10,
-    }));
+        ) / 10;
+      criterionMap.set(item.id, avg);
+      return {
+        criterionId: item.id,
+        name: item.name,
+        average: avg,
+      };
+    });
 
     const finalScore = aggregate(totals, formula);
+    const primaryAvg = primaryId ? (criterionMap.get(primaryId) ?? 0) : 0;
+
     items.push({
       candidateId: candidate.id,
       name: candidate.name,
@@ -103,33 +131,39 @@ export function buildLeaderboard(
       perCriterion,
       rank: 0,
       topCriteria: [],
+      criterionMap,
+      primaryAvg,
     });
   }
 
-  const primary = [...criteria.items].sort((a, b) => b.weight - a.weight)[0];
+  // ⚡ Optimization: O(1) tie-breaker comparisons using cached primaryAvg instead of repeated Array.prototype.find
   items.sort((a, b) => {
     if (b.finalScore !== a.finalScore) return b.finalScore - a.finalScore;
-    if (!primary) return 0;
-    const av = a.perCriterion.find((c) => c.criterionId === primary.id)?.average ?? 0;
-    const bv = b.perCriterion.find((c) => c.criterionId === primary.id)?.average ?? 0;
-    return bv - av;
+    return (b.primaryAvg ?? 0) - (a.primaryAvg ?? 0);
   });
+
   items.forEach((item, i) => {
     item.rank = i + 1;
   });
 
+  // ⚡ Optimization: Keep direct reference to winner LeaderboardItem instead of secondary O(N) Array.prototype.find lookup
   for (const criterion of criteria.items) {
     let best = -1;
-    let bestId = "";
+    let winner: LeaderboardItem | null = null;
     for (const item of items) {
-      const value = item.perCriterion.find((c) => c.criterionId === criterion.id)?.average ?? 0;
+      const value = item.criterionMap?.get(criterion.id) ?? 0;
       if (value > best) {
         best = value;
-        bestId = item.candidateId;
+        winner = item;
       }
     }
-    const winner = items.find((i) => i.candidateId === bestId);
     if (winner && best > 0) winner.topCriteria.push(criterion.name);
+  }
+
+  // Remove temporary cached properties before returning
+  for (const item of items) {
+    delete item.criterionMap;
+    delete item.primaryAvg;
   }
 
   return items;
