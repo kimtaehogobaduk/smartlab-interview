@@ -22,13 +22,23 @@ function RoomLobbyPage() {
       <div className="mx-auto max-w-5xl space-y-8">
         <div className="grid gap-4 md:grid-cols-2">
           {rooms.map((room) => (
-            <button
+            <div
               key={room.id}
+              role="button"
+              tabIndex={0}
+              aria-pressed={selected === room.id}
+              aria-label={`${room.name} (${room.title}) 선택`}
               onClick={() => setSelected(room.id)}
-              className={`text-left ${selected === room.id ? "rounded-xl ring-2 ring-primary" : ""}`}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setSelected(room.id);
+                }
+              }}
+              className={`cursor-pointer text-left ${selected === room.id ? "rounded-xl ring-2 ring-primary" : ""}`}
             >
               <RoomCard room={room} />
-            </button>
+            </div>
           ))}
         </div>
         {selected ? (
@@ -60,11 +70,28 @@ function RoomLobbyPage() {
                     </Button>
                   ))}
               </div>
-              <Button asChild disabled={!interviewer} className="mt-6">
-                <Link to="/rooms/$roomId" params={{ roomId: selected }}>
-                  대기 목록으로 입장 <ArrowRight />
-                </Link>
-              </Button>
+              <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+                <Button asChild disabled={!interviewer}>
+                  <Link
+                    to="/rooms/$roomId"
+                    params={{ roomId: selected }}
+                    aria-disabled={!interviewer}
+                    tabIndex={!interviewer ? -1 : 0}
+                    onClick={(e) => {
+                      if (!interviewer) {
+                        e.preventDefault();
+                      }
+                    }}
+                  >
+                    대기 목록으로 입장 <ArrowRight />
+                  </Link>
+                </Button>
+                {!interviewer ? (
+                  <p className="text-xs text-muted-foreground">
+                    입장하려면 위에서 본인 프로필을 선택해 주세요.
+                  </p>
+                ) : null}
+              </div>
             </CardContent>
           </Card>
         ) : null}

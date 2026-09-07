@@ -1,0 +1,3 @@
+## 2026-09-07 - Radix Button asChild with TanStack Router Link Disabled State
+**Learning:** Passing `disabled` to a `Button asChild` wrapping TanStack Router's `<Link>` forwards the `disabled` prop to an underlying `<a>` HTML element, which natively ignores `disabled` attributes. As a result, visually disabled buttons still trigger route navigation when clicked or pressed.
+**Action:** When disabling a `Link` rendered inside `Button asChild`, explicitly add `aria-disabled={disabled}`, `tabIndex={disabled ? -1 : 0}`, and `onClick={(e) => disabled && e.preventDefault()}` to the `<Link>` element, alongside helper text explaining why the action is disabled.
