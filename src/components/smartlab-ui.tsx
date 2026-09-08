@@ -61,9 +61,10 @@ export function AppShell({
           <div className="flex items-center gap-5">
             <Link
               to={backTo}
-              className="rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
+              aria-label="이전 페이지로 이동"
+              className="rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <ArrowLeft className="size-4" />
+              <ArrowLeft className="size-4" aria-hidden="true" />
             </Link>
             <Brand size={36} />
             <div className="hidden border-l border-border pl-5 md:block">
@@ -549,8 +550,9 @@ export function CandidateTable({
                         size="icon"
                         variant="ghost"
                         onClick={() => removeCandidate(candidate.id)}
+                        aria-label={`${candidate.name} 지원자 삭제`}
                       >
-                        <X />
+                        <X aria-hidden="true" />
                       </Button>
                     </div>
                   ) : null}

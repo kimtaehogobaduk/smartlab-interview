@@ -182,8 +182,8 @@ function InterviewRoomPage() {
                   placeholder="면접 중 메모 또는 발화를 입력하세요."
                   className="min-h-12"
                 />
-                <Button size="icon" onClick={addNote}>
-                  <Send />
+                <Button size="icon" onClick={addNote} aria-label="메모 제출">
+                  <Send aria-hidden="true" />
                 </Button>
               </div>
             </CardContent>
@@ -258,6 +258,7 @@ function InterviewRoomPage() {
                       disabled={!state.criteria.isConfirmed}
                       value={scores[item.id] ?? 0}
                       onChange={(e) => setScores({ ...scores, [item.id]: Number(e.target.value) })}
+                      aria-label={`${item.name} 점수`}
                       className="w-full accent-[var(--primary)]"
                     />
                     <div className="mt-2 flex items-center justify-between gap-3">
