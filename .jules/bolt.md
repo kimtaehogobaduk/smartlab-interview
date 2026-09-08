@@ -1,0 +1,3 @@
+## 2025-05-18 - Leaderboard Calculation Algorithmic Optimization
+**Learning:** `buildLeaderboard` in `scoring.ts` previously executed repeated $O(C \cdot S)$ linear filters on submissions, $O(M \cdot S \cdot K)$ score lookups, array search in sort tie-breakers, and nested search for winner assignment. Indexing submissions by `candidateId` into a `Map` upfront, computing criterion score sums in a single pass, pre-caching primary scores for sorting, and using direct index mapping reduced benchmark execution time from ~724ms to ~70ms (~10x speedup).
+**Action:** Always pre-group collection dependencies in scoring or aggregation functions before iterating over entities to avoid $O(N \times M)$ nested filtering and searching in render loops.
