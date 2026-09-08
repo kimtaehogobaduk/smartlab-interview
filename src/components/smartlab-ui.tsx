@@ -497,7 +497,10 @@ export function CandidateTable({
   compact?: boolean;
 }) {
   const { state, removeCandidate, setCandidateStatus } = useStore();
-  const candidates = state.candidates.filter((candidate) => !roomId || candidate.roomId === roomId);
+  const candidates = useMemo(
+    () => state.candidates.filter((candidate) => !roomId || candidate.roomId === roomId),
+    [state.candidates, roomId],
+  );
   return (
     <div className="overflow-hidden rounded-lg border border-border">
       <div className="overflow-x-auto">
@@ -673,15 +676,21 @@ export function ParserPanel({ room }: { room: InterviewRoomItem }) {
 
 export function Leaderboard({ roomId }: { roomId?: string }) {
   const { state } = useStore();
-  const rows = buildLeaderboard(
-    state.candidates.filter((c) => !roomId || c.roomId === roomId),
-    state.submissions,
-    state.criteria,
-    state.criteria.formula,
+  const roomCandidates = useMemo(
+    () => state.candidates.filter((c) => !roomId || c.roomId === roomId),
+    [state.candidates, roomId],
+  );
+  const rows = useMemo(
+    () =>
+      buildLeaderboard(roomCandidates, state.submissions, state.criteria, state.criteria.formula),
+    [roomCandidates, state.submissions, state.criteria],
   );
   const [track, setTrack] = useState("전체");
-  const tracks = ["전체", ...new Set(rows.map((row) => row.track))];
-  const visible = rows.filter((row) => track === "전체" || row.track === track);
+  const tracks = useMemo(() => ["전체", ...new Set(rows.map((row) => row.track))], [rows]);
+  const visible = useMemo(
+    () => rows.filter((row) => track === "전체" || row.track === track),
+    [rows, track],
+  );
   return (
     <Card className="border-border bg-card/50">
       <CardHeader>
@@ -740,8 +749,11 @@ export function Leaderboard({ roomId }: { roomId?: string }) {
 
 export function RoomCard({ room }: { room: InterviewRoomItem }) {
   const { state } = useStore();
-  const candidates = state.candidates.filter((c) => c.roomId === room.id);
-  const completed = candidates.filter((c) => c.status === "COMPLETED").length;
+  const { candidates, completed } = useMemo(() => {
+    const list = state.candidates.filter((c) => c.roomId === room.id);
+    const done = list.filter((c) => c.status === "COMPLETED").length;
+    return { candidates: list, completed: done };
+  }, [state.candidates, room.id]);
   return (
     <Card className="group border-border bg-card/60 transition hover:border-primary/50 hover:shadow-[0_0_30px_-18px_var(--primary)]">
       <CardContent className="p-5">
