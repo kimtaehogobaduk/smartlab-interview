@@ -255,6 +255,11 @@ function InterviewRoomPage() {
                       min="0"
                       max="100"
                       step="0.1"
+                      aria-label={`${item.name} 점수`}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={scores[item.id] ?? 0}
+                      aria-describedby={`desc-${item.id}`}
                       disabled={!state.criteria.isConfirmed}
                       value={scores[item.id] ?? 0}
                       onChange={(e) => setScores({ ...scores, [item.id]: Number(e.target.value) })}
@@ -262,10 +267,11 @@ function InterviewRoomPage() {
                     />
                     <div className="mt-2 flex items-center justify-between gap-3">
                       <span className="text-xs text-warning">특이 가산점 (+점)</span>
-                      <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         +
                         <input
-                          aria-label={`${item.name} 가산점`}
+                          aria-label={`${item.name} 특이 가산점`}
+                          aria-describedby={`bonus-desc-${item.id}`}
                           type="number"
                           min="0"
                           max={Math.round((scores[item.id] ?? 0) * 0.1 * 10) / 10}
@@ -283,10 +289,12 @@ function InterviewRoomPage() {
                           }
                           className="h-8 w-20 rounded border border-input bg-background px-2 text-right font-mono text-foreground"
                         />
-                        점 <span>(기본 점수의 최대 10%)</span>
-                      </label>
+                        점 <span id={`bonus-desc-${item.id}`}>(기본 점수의 최대 10%)</span>
+                      </div>
                     </div>
-                    <p className="mt-1 text-xs text-muted-foreground">{item.description}</p>
+                    <p id={`desc-${item.id}`} className="mt-1 text-xs text-muted-foreground">
+                      {item.description}
+                    </p>
                   </label>
                 ))}
               </div>
