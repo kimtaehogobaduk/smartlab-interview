@@ -179,10 +179,16 @@ function InterviewRoomPage() {
                 <Textarea
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
-                  placeholder="면접 중 메모 또는 발화를 입력하세요."
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      addNote();
+                    }
+                  }}
+                  placeholder="면접 중 메모 또는 발화를 입력하세요. (Enter: 저장, Shift+Enter: 줄바꿈)"
                   className="min-h-12"
                 />
-                <Button size="icon" onClick={addNote}>
+                <Button size="icon" onClick={addNote} aria-label="노트 저장">
                   <Send />
                 </Button>
               </div>
