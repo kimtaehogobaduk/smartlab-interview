@@ -182,8 +182,8 @@ function InterviewRoomPage() {
                   placeholder="면접 중 메모 또는 발화를 입력하세요."
                   className="min-h-12"
                 />
-                <Button size="icon" onClick={addNote}>
-                  <Send />
+                <Button size="icon" onClick={addNote} aria-label="발화 메모 등록">
+                  <Send aria-hidden="true" />
                 </Button>
               </div>
             </CardContent>
