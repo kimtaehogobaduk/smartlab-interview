@@ -181,8 +181,9 @@ function InterviewRoomPage() {
                   onChange={(e) => setNote(e.target.value)}
                   placeholder="면접 중 메모 또는 발화를 입력하세요."
                   className="min-h-12"
+                  aria-label="면접 메모 또는 발화 입력"
                 />
-                <Button size="icon" onClick={addNote}>
+                <Button size="icon" onClick={addNote} aria-label="메모 작성 및 추가">
                   <Send />
                 </Button>
               </div>

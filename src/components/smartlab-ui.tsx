@@ -62,6 +62,7 @@ export function AppShell({
             <Link
               to={backTo}
               className="rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
+              aria-label="이전 페이지로 이동"
             >
               <ArrowLeft className="size-4" />
             </Link>
@@ -549,6 +550,7 @@ export function CandidateTable({
                         size="icon"
                         variant="ghost"
                         onClick={() => removeCandidate(candidate.id)}
+                        aria-label={`${candidate.name} 지원자 삭제`}
                       >
                         <X />
                       </Button>
@@ -690,6 +692,7 @@ export function Leaderboard({ roomId }: { roomId?: string }) {
             <Trophy className="size-4 text-warning" /> 리더보드
           </CardTitle>
           <select
+            aria-label="트랙 필터"
             value={track}
             onChange={(e) => setTrack(e.target.value)}
             className="rounded border border-input bg-background px-3 py-2 text-xs"
