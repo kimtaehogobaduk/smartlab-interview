@@ -65,9 +65,20 @@ export function buildLeaderboard(
 ): LeaderboardItem[] {
   const items: LeaderboardItem[] = [];
 
+  // Group submissions by candidateId in O(S) time to avoid O(C * S) nested filtering
+  const submissionsByCandidate = new Map<string, EvaluationSubmission[]>();
+  for (const s of submissions) {
+    let list = submissionsByCandidate.get(s.candidateId);
+    if (!list) {
+      list = [];
+      submissionsByCandidate.set(s.candidateId, list);
+    }
+    list.push(s);
+  }
+
   for (const candidate of candidates) {
-    const subs = submissions.filter((s) => s.candidateId === candidate.id);
-    if (subs.length === 0) continue;
+    const subs = submissionsByCandidate.get(candidate.id);
+    if (!subs || subs.length === 0) continue;
 
     const totals = subs.map((s) =>
       formula === "mean"
@@ -118,6 +129,9 @@ export function buildLeaderboard(
     item.rank = i + 1;
   });
 
+  // O(1) map lookup for candidate items when updating top criteria winners
+  const itemMap = new Map<string, LeaderboardItem>(items.map((item) => [item.candidateId, item]));
+
   for (const criterion of criteria.items) {
     let best = -1;
     let bestId = "";
@@ -128,7 +142,7 @@ export function buildLeaderboard(
         bestId = item.candidateId;
       }
     }
-    const winner = items.find((i) => i.candidateId === bestId);
+    const winner = itemMap.get(bestId);
     if (winner && best > 0) winner.topCriteria.push(criterion.name);
   }
 
