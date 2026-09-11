@@ -1,0 +1,3 @@
+## 2026-03-31 - Leaderboard Algorithmic and React Render Optimization
+**Learning:** In scoring/leaderboard calculations with separate arrays for candidates and submissions, calling `Array.prototype.filter` inside the candidate loop results in O(C * S) operations. Pre-indexing submissions by `candidateId` using a `Map` drops lookups to O(1), bringing total time down to O(C + S). Additionally, wrapping `buildLeaderboard` in React's `useMemo` prevents unnecessary execution during unrelated component re-renders.
+**Action:** Always pre-index relational arrays into Hash Maps before iteration loops, and memoize computationally intensive derived states in React components.
