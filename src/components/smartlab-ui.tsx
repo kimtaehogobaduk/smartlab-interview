@@ -673,15 +673,28 @@ export function ParserPanel({ room }: { room: InterviewRoomItem }) {
 
 export function Leaderboard({ roomId }: { roomId?: string }) {
   const { state } = useStore();
-  const rows = buildLeaderboard(
-    state.candidates.filter((c) => !roomId || c.roomId === roomId),
-    state.submissions,
-    state.criteria,
-    state.criteria.formula,
+  // Performance Optimization (Bolt): Memoize candidates filter & buildLeaderboard output
+  const filteredCandidates = useMemo(
+    () => state.candidates.filter((c) => !roomId || c.roomId === roomId),
+    [state.candidates, roomId],
+  );
+  const rows = useMemo(
+    () =>
+      buildLeaderboard(
+        filteredCandidates,
+        state.submissions,
+        state.criteria,
+        state.criteria.formula,
+      ),
+    [filteredCandidates, state.submissions, state.criteria],
   );
   const [track, setTrack] = useState("전체");
-  const tracks = ["전체", ...new Set(rows.map((row) => row.track))];
-  const visible = rows.filter((row) => track === "전체" || row.track === track);
+  // Performance Optimization (Bolt): Memoize tracks list and visible rows to avoid re-allocating array/set filters on unrelated re-renders
+  const tracks = useMemo(() => ["전체", ...new Set(rows.map((row) => row.track))], [rows]);
+  const visible = useMemo(
+    () => rows.filter((row) => track === "전체" || row.track === track),
+    [rows, track],
+  );
   return (
     <Card className="border-border bg-card/50">
       <CardHeader>
