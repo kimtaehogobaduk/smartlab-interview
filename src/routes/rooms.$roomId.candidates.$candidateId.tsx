@@ -150,6 +150,8 @@ function InterviewRoomPage() {
                   size="sm"
                   variant={listening ? "default" : "outline"}
                   onClick={() => setListening(!listening)}
+                  aria-pressed={listening}
+                  aria-label={listening ? "음성 기록 중지" : "음성 기록 시작"}
                 >
                   <span
                     className={`size-2 rounded-full ${listening ? "bg-destructive animate-pulse" : "bg-muted-foreground"}`}
@@ -181,8 +183,9 @@ function InterviewRoomPage() {
                   onChange={(e) => setNote(e.target.value)}
                   placeholder="면접 중 메모 또는 발화를 입력하세요."
                   className="min-h-12"
+                  aria-label="면접 메모 및 발화 입력"
                 />
-                <Button size="icon" onClick={addNote}>
+                <Button size="icon" onClick={addNote} aria-label="메모 추가">
                   <Send />
                 </Button>
               </div>
@@ -258,6 +261,7 @@ function InterviewRoomPage() {
                       disabled={!state.criteria.isConfirmed}
                       value={scores[item.id] ?? 0}
                       onChange={(e) => setScores({ ...scores, [item.id]: Number(e.target.value) })}
+                      aria-label={`${item.name} 점수`}
                       className="w-full accent-[var(--primary)]"
                     />
                     <div className="mt-2 flex items-center justify-between gap-3">
