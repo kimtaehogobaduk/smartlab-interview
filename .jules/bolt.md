@@ -1,0 +1,3 @@
+## 2025-05-18 - Leaderboard Aggregation Map Pre-Grouping
+**Learning:** `buildLeaderboard` in `scoring.ts` performed $O(C \cdot S)$ linear scans filtering submissions for every candidate, and $O(N)$ lookups finding criterion winners, causing quadratic slowdown as submission counts grew. Pre-grouping submissions into a `Map<string, EvaluationSubmission[]>` reduced submission filtering to $O(S)$ overall, and tracking score averages in direct object maps eliminated nested `.find()` iterations.
+**Action:** When building aggregated statistics across relational entities in frontend/helper utilities, always pre-group foreign keyed items using `Map` or indexed lookups before running candidate/item loops.
