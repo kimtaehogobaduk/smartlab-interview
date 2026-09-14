@@ -2,7 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { createHash, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 
-const AdminCodeInput = z.object({ code: z.string().min(1) });
+// Restrict input length to prevent DoS via excessive string length/memory consumption
+const AdminCodeInput = z.object({ code: z.string().min(1).max(256) });
 
 export function safeCompare(a: string, b: string): boolean {
   const hashA = createHash("sha256").update(a).digest();
