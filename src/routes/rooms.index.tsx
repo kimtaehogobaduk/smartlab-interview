@@ -25,7 +25,11 @@ function RoomLobbyPage() {
             <button
               key={room.id}
               onClick={() => setSelected(room.id)}
-              className={`text-left ${selected === room.id ? "rounded-xl ring-2 ring-primary" : ""}`}
+              aria-pressed={selected === room.id}
+              aria-label={`${room.name}: ${room.title}`}
+              className={`rounded-xl text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+                selected === room.id ? "ring-2 ring-primary" : ""
+              }`}
             >
               <RoomCard room={room} />
             </button>
