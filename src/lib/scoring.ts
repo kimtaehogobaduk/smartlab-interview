@@ -57,41 +57,58 @@ export interface LeaderboardItem {
   topCriteria: string[];
 }
 
+/** Helper to compute adjusted score including bounded bonus points [0, score * 0.1]. */
+function getAdjustedScore(score: number, bonusPoints?: number): number {
+  return score + Math.min(Math.max(bonusPoints ?? 0, 0), score * 0.1);
+}
+
 export function buildLeaderboard(
   candidates: Candidate[],
   submissions: EvaluationSubmission[],
   criteria: CriteriaConfig,
   formula: Formula,
 ): LeaderboardItem[] {
+  // Performance optimization: Pre-group submissions by candidate ID into a Map.
+  // Reduces lookup complexity from O(N * S) to O(S + N).
+  const subsByCandidate = new Map<string, EvaluationSubmission[]>();
+  for (const sub of submissions) {
+    let list = subsByCandidate.get(sub.candidateId);
+    if (!list) {
+      list = [];
+      subsByCandidate.set(sub.candidateId, list);
+    }
+    list.push(sub);
+  }
+
   const items: LeaderboardItem[] = [];
 
   for (const candidate of candidates) {
-    const subs = submissions.filter((s) => s.candidateId === candidate.id);
-    if (subs.length === 0) continue;
+    const subs = subsByCandidate.get(candidate.id);
+    if (!subs || subs.length === 0) continue;
 
     const totals = subs.map((s) =>
       formula === "mean"
-        ? mean(
-            s.scores.map((x) => x.score + Math.min(Math.max(x.bonusPoints ?? 0, 0), x.score * 0.1)),
-          )
+        ? mean(s.scores.map((x) => getAdjustedScore(x.score, x.bonusPoints)))
         : s.totalWeightedScore,
     );
 
-    const perCriterion = criteria.items.map((item) => ({
-      criterionId: item.id,
-      name: item.name,
-      average:
-        Math.round(
-          mean(
-            subs.map((s) => {
-              const score = s.scores.find((x) => x.criterionId === item.id);
-              return score
-                ? score.score + Math.min(Math.max(score.bonusPoints ?? 0, 0), score.score * 0.1)
-                : 0;
-            }),
-          ) * 10,
-        ) / 10,
-    }));
+    // Performance optimization: Pre-map submission scores for O(1) criterion lookup.
+    const mappedSubs = subs.map((s) => {
+      const scoreMap = new Map<string, number>();
+      for (const x of s.scores) {
+        scoreMap.set(x.criterionId, getAdjustedScore(x.score, x.bonusPoints));
+      }
+      return scoreMap;
+    });
+
+    const perCriterion = criteria.items.map((item) => {
+      const avg = mean(mappedSubs.map((scoreMap) => scoreMap.get(item.id) ?? 0));
+      return {
+        criterionId: item.id,
+        name: item.name,
+        average: Math.round(avg * 10) / 10,
+      };
+    });
 
     const finalScore = aggregate(totals, formula);
     items.push({
@@ -106,30 +123,51 @@ export function buildLeaderboard(
     });
   }
 
-  const primary = [...criteria.items].sort((a, b) => b.weight - a.weight)[0];
+  // Find the primary criterion (highest weight) index in criteria.items.
+  let primaryIndex = -1;
+  let maxWeight = -1;
+  for (let i = 0; i < criteria.items.length; i++) {
+    const c = criteria.items[i];
+    if (c && c.weight > maxWeight) {
+      maxWeight = c.weight;
+      primaryIndex = i;
+    }
+  }
+
+  // Performance optimization: Direct O(1) index access for primary criterion average during sort,
+  // replacing repeated O(C) .find(...) calls during O(N log N) comparisons.
   items.sort((a, b) => {
     if (b.finalScore !== a.finalScore) return b.finalScore - a.finalScore;
-    if (!primary) return 0;
-    const av = a.perCriterion.find((c) => c.criterionId === primary.id)?.average ?? 0;
-    const bv = b.perCriterion.find((c) => c.criterionId === primary.id)?.average ?? 0;
+    if (primaryIndex === -1) return 0;
+    const av = a.perCriterion[primaryIndex]?.average ?? 0;
+    const bv = b.perCriterion[primaryIndex]?.average ?? 0;
     return bv - av;
   });
+
   items.forEach((item, i) => {
     item.rank = i + 1;
   });
 
-  for (const criterion of criteria.items) {
+  // Performance optimization: Direct index access for criterion average and direct winner reference
+  // replaces O(C * N * C) find operations with O(C * N).
+  for (let cIdx = 0; cIdx < criteria.items.length; cIdx++) {
+    const criterion = criteria.items[cIdx];
+    if (!criterion) continue;
+
     let best = -1;
-    let bestId = "";
+    let winner: LeaderboardItem | null = null;
+
     for (const item of items) {
-      const value = item.perCriterion.find((c) => c.criterionId === criterion.id)?.average ?? 0;
+      const value = item.perCriterion[cIdx]?.average ?? 0;
       if (value > best) {
         best = value;
-        bestId = item.candidateId;
+        winner = item;
       }
     }
-    const winner = items.find((i) => i.candidateId === bestId);
-    if (winner && best > 0) winner.topCriteria.push(criterion.name);
+
+    if (winner && best > 0) {
+      winner.topCriteria.push(criterion.name);
+    }
   }
 
   return items;
