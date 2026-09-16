@@ -2,9 +2,25 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { asStringArray, callGatewayJson } from "./ai.server";
 
+export function isValidImageUrl(url: string): boolean {
+  if (!url) return true;
+  if (url.startsWith("data:image/")) return true;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 const ParserInput = z.object({
   rawInput: z.string().default(""),
-  imageBase64: z.string().optional(),
+  imageBase64: z
+    .string()
+    .refine((val) => isValidImageUrl(val), {
+      message: "Invalid image format or scheme. Only data:image/ or https:// URLs are allowed.",
+    })
+    .optional(),
 });
 
 export const parseUniversalData = createServerFn({ method: "POST" })
