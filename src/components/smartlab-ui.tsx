@@ -549,6 +549,8 @@ export function CandidateTable({
                         size="icon"
                         variant="ghost"
                         onClick={() => removeCandidate(candidate.id)}
+                        aria-label={`${candidate.name} 삭제`}
+                        title={`${candidate.name} 삭제`}
                       >
                         <X />
                       </Button>
