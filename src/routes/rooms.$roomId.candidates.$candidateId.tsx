@@ -182,7 +182,7 @@ function InterviewRoomPage() {
                   placeholder="면접 중 메모 또는 발화를 입력하세요."
                   className="min-h-12"
                 />
-                <Button size="icon" onClick={addNote}>
+                <Button size="icon" onClick={addNote} aria-label="메모 추가">
                   <Send />
                 </Button>
               </div>
@@ -255,6 +255,7 @@ function InterviewRoomPage() {
                       min="0"
                       max="100"
                       step="0.1"
+                      aria-label={`${item.name} 점수`}
                       disabled={!state.criteria.isConfirmed}
                       value={scores[item.id] ?? 0}
                       onChange={(e) => setScores({ ...scores, [item.id]: Number(e.target.value) })}
