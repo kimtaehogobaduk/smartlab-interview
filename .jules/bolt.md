@@ -1,0 +1,4 @@
+## 2026-03-30 - O(C * S) Candidate Scoring Bottleneck in Leaderboard
+
+**Learning:** In interview scoring applications, candidates and submissions grow simultaneously. Computing candidate scores by running `submissions.filter()` per candidate introduces $O(C \times S)$ complexity. Furthermore, inner `.find()` lookups during sorting tie-breakers ($O(N \log N \times K)$) and winner searches ($O(K \times N^2)$) compound rendering overhead on every store update. Pre-grouping submissions into a `Map<string, EvaluationSubmission[]>` and pre-indexing criteria score maps reduces recalculation time to $O(C + S + N \log N)$.
+**Action:** When building aggregate leaderboard or reporting views, always pre-group list relational data by entity ID into Map data structures before iterating across candidates or sorting results.
