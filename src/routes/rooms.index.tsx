@@ -24,10 +24,13 @@ function RoomLobbyPage() {
           {rooms.map((room) => (
             <button
               key={room.id}
+              type="button"
+              aria-pressed={selected === room.id}
+              aria-label={`면접실 선택: ${room.name}`}
               onClick={() => setSelected(room.id)}
-              className={`text-left ${selected === room.id ? "rounded-xl ring-2 ring-primary" : ""}`}
+              className={`text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${selected === room.id ? "rounded-xl ring-2 ring-primary" : ""}`}
             >
-              <RoomCard room={room} />
+              <RoomCard room={room} showLink={false} />
             </button>
           ))}
         </div>

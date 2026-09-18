@@ -738,7 +738,13 @@ export function Leaderboard({ roomId }: { roomId?: string }) {
   );
 }
 
-export function RoomCard({ room }: { room: InterviewRoomItem }) {
+export function RoomCard({
+  room,
+  showLink = true,
+}: {
+  room: InterviewRoomItem;
+  showLink?: boolean;
+}) {
   const { state } = useStore();
   const candidates = state.candidates.filter((c) => c.roomId === room.id);
   const completed = candidates.filter((c) => c.status === "COMPLETED").length;
@@ -775,13 +781,19 @@ export function RoomCard({ room }: { room: InterviewRoomItem }) {
           <span>
             평가 진행률 {candidates.length ? Math.round((completed / candidates.length) * 100) : 0}%
           </span>
-          <Link
-            to="/rooms/$roomId"
-            params={{ roomId: room.id }}
-            className="flex items-center gap-1 font-medium text-primary"
-          >
-            입장 <ArrowRight className="size-3 transition group-hover:translate-x-1" />
-          </Link>
+          {showLink ? (
+            <Link
+              to="/rooms/$roomId"
+              params={{ roomId: room.id }}
+              className="flex items-center gap-1 font-medium text-primary"
+            >
+              입장 <ArrowRight className="size-3 transition group-hover:translate-x-1" />
+            </Link>
+          ) : (
+            <span className="flex items-center gap-1 font-medium text-primary">
+              선택 <ArrowRight className="size-3 transition group-hover:translate-x-1" />
+            </span>
+          )}
         </div>
       </CardContent>
     </Card>
