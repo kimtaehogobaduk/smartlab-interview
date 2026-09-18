@@ -1,10 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
-import { createHash, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 
 const AdminCodeInput = z.object({ code: z.string().min(1) });
 
-export function safeCompare(a: string, b: string): boolean {
+export async function safeCompare(a: string, b: string): Promise<boolean> {
+  const { createHash, timingSafeEqual } = await import("node:crypto");
   const hashA = createHash("sha256").update(a).digest();
   const hashB = createHash("sha256").update(b).digest();
   return timingSafeEqual(hashA, hashB);
