@@ -61,6 +61,7 @@ export function AppShell({
           <div className="flex items-center gap-5">
             <Link
               to={backTo}
+              aria-label="이전 페이지로 돌아가기"
               className="rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
             >
               <ArrowLeft className="size-4" />
