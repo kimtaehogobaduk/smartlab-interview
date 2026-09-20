@@ -1,0 +1,4 @@
+## 2026-09-20 - Map Indexing & Memoization for Evaluation Scoring
+
+**Learning:** In candidate interview and leaderboard evaluation systems, calculating leaderboard rankings with `filter` and `find` inside nested loops over candidates and criteria leads to $O(N \cdot M \cdot C \cdot S)$ computational complexity. Pre-grouping submissions by `candidateId` and indexing scores by `criterionId` using native JavaScript `Map`s drastically improves algorithm efficiency to $O(N + M + N \cdot C \cdot S)$. In addition, wrapping leaderboard state derive logic in React `useMemo` hooks prevents redundant ranking re-calculations during unrelated parent component re-renders.
+**Action:** Always pre-group submissions/records with `Map` before iterating candidates/items, pre-index criteria averages for sort comparators, and wrap leaderboard derived values in `useMemo`.
