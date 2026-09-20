@@ -153,7 +153,10 @@ export function StatusBadge({ status }: { status: Candidate["status"] }) {
 export function CriteriaEditor() {
   const { state, setCriteria } = useStore();
   const [draft, setDraft] = useState<CriteriaConfig>(state.criteria);
-  const total = draft.items.reduce((sum, item) => sum + Number(item.weight || 0), 0);
+  const total = useMemo(
+    () => draft.items.reduce((sum, item) => sum + Number(item.weight || 0), 0),
+    [draft.items],
+  );
   const updateItem = (id: string, patch: Partial<EvaluationCriterion>) =>
     setDraft((prev) => ({
       ...prev,
@@ -497,7 +500,10 @@ export function CandidateTable({
   compact?: boolean;
 }) {
   const { state, removeCandidate, setCandidateStatus } = useStore();
-  const candidates = state.candidates.filter((candidate) => !roomId || candidate.roomId === roomId);
+  const candidates = useMemo(
+    () => state.candidates.filter((candidate) => !roomId || candidate.roomId === roomId),
+    [state.candidates, roomId],
+  );
   return (
     <div className="overflow-hidden rounded-lg border border-border">
       <div className="overflow-x-auto">
@@ -673,15 +679,27 @@ export function ParserPanel({ room }: { room: InterviewRoomItem }) {
 
 export function Leaderboard({ roomId }: { roomId?: string }) {
   const { state } = useStore();
-  const rows = buildLeaderboard(
-    state.candidates.filter((c) => !roomId || c.roomId === roomId),
-    state.submissions,
-    state.criteria,
-    state.criteria.formula,
+  // Optimization: Memoize candidates filter and leaderboard computation to avoid re-calculating on unrelated re-renders.
+  const candidatesForRoom = useMemo(
+    () => state.candidates.filter((c) => !roomId || c.roomId === roomId),
+    [state.candidates, roomId],
+  );
+  const rows = useMemo(
+    () =>
+      buildLeaderboard(
+        candidatesForRoom,
+        state.submissions,
+        state.criteria,
+        state.criteria.formula,
+      ),
+    [candidatesForRoom, state.submissions, state.criteria],
   );
   const [track, setTrack] = useState("전체");
-  const tracks = ["전체", ...new Set(rows.map((row) => row.track))];
-  const visible = rows.filter((row) => track === "전체" || row.track === track);
+  const tracks = useMemo(() => ["전체", ...new Set(rows.map((row) => row.track))], [rows]);
+  const visible = useMemo(
+    () => rows.filter((row) => track === "전체" || row.track === track),
+    [rows, track],
+  );
   return (
     <Card className="border-border bg-card/50">
       <CardHeader>
@@ -740,8 +758,15 @@ export function Leaderboard({ roomId }: { roomId?: string }) {
 
 export function RoomCard({ room }: { room: InterviewRoomItem }) {
   const { state } = useStore();
-  const candidates = state.candidates.filter((c) => c.roomId === room.id);
-  const completed = candidates.filter((c) => c.status === "COMPLETED").length;
+  // Optimization: Memoize candidates filtering and completion count per room.
+  const candidates = useMemo(
+    () => state.candidates.filter((c) => c.roomId === room.id),
+    [state.candidates, room.id],
+  );
+  const completed = useMemo(
+    () => candidates.filter((c) => c.status === "COMPLETED").length,
+    [candidates],
+  );
   return (
     <Card className="group border-border bg-card/60 transition hover:border-primary/50 hover:shadow-[0_0_30px_-18px_var(--primary)]">
       <CardContent className="p-5">
