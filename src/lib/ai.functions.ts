@@ -2,9 +2,9 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { asStringArray, callGatewayJson } from "./ai.server";
 
-const ParserInput = z.object({
-  rawInput: z.string().default(""),
-  imageBase64: z.string().optional(),
+export const ParserInput = z.object({
+  rawInput: z.string().max(50000).default(""),
+  imageBase64: z.string().max(10000000).optional(),
 });
 
 export const parseUniversalData = createServerFn({ method: "POST" })
@@ -37,10 +37,10 @@ export const parseUniversalData = createServerFn({ method: "POST" })
     };
   });
 
-const FeedbackInput = z.object({
-  transcript: z.string().min(1),
-  candidateProfile: z.string().default(""),
-  documents: z.string().default(""),
+export const FeedbackInput = z.object({
+  transcript: z.string().min(1).max(50000),
+  candidateProfile: z.string().max(20000).default(""),
+  documents: z.string().max(50000).default(""),
 });
 
 export const realtimeFeedback = createServerFn({ method: "POST" })
@@ -63,9 +63,9 @@ export const realtimeFeedback = createServerFn({ method: "POST" })
     };
   });
 
-const MindMapInput = z.object({
-  candidateName: z.string().default(""),
-  documents: z.string().min(1),
+export const MindMapInput = z.object({
+  candidateName: z.string().max(200).default(""),
+  documents: z.string().min(1).max(50000),
 });
 
 export const buildMindMap = createServerFn({ method: "POST" })
