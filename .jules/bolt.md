@@ -1,0 +1,3 @@
+## 2026-03-30 - Map Pre-grouping and Sort Key Caching for Scoring Leaderboards
+**Learning:** `buildLeaderboard` performed $O(C \times S)$ candidate submission filtering, repeated array `.find()` lookups during criterion aggregation, $O(C \log C \times K)$ sort comparator lookups, and linear searches for criterion winner items. Pre-grouping submissions in a `Map`, pre-indexing criteria scores, and memoizing the React component reduces leaderboard calculation complexity to $O(C + S + C \log C)$.
+**Action:** Always pre-group array relations into `Map` structures before candidate/submission iteration, cache sort keys outside comparator callbacks, and wrap expensive derived data calculations in `useMemo`.
