@@ -63,11 +63,24 @@ export function buildLeaderboard(
   criteria: CriteriaConfig,
   formula: Formula,
 ): LeaderboardItem[] {
+  // BOLT PERFORMANCE OPTIMIZATION:
+  // Pre-group submissions by candidateId into a Map for O(1) lookups instead of O(N) array filter per candidate.
+  // Reduces time complexity from O(Candidates * Submissions) to O(Submissions + Candidates).
+  const subsByCandidate = new Map<string, EvaluationSubmission[]>();
+  for (const s of submissions) {
+    const list = subsByCandidate.get(s.candidateId);
+    if (list) {
+      list.push(s);
+    } else {
+      subsByCandidate.set(s.candidateId, [s]);
+    }
+  }
+
   const items: LeaderboardItem[] = [];
 
   for (const candidate of candidates) {
-    const subs = submissions.filter((s) => s.candidateId === candidate.id);
-    if (subs.length === 0) continue;
+    const subs = subsByCandidate.get(candidate.id);
+    if (!subs || subs.length === 0) continue;
 
     const totals = subs.map((s) =>
       formula === "mean"
@@ -120,15 +133,14 @@ export function buildLeaderboard(
 
   for (const criterion of criteria.items) {
     let best = -1;
-    let bestId = "";
+    let winner: LeaderboardItem | undefined;
     for (const item of items) {
       const value = item.perCriterion.find((c) => c.criterionId === criterion.id)?.average ?? 0;
       if (value > best) {
         best = value;
-        bestId = item.candidateId;
+        winner = item;
       }
     }
-    const winner = items.find((i) => i.candidateId === bestId);
     if (winner && best > 0) winner.topCriteria.push(criterion.name);
   }
 
