@@ -2,8 +2,13 @@ import { createServerFn } from "@tanstack/react-start";
 import { createHash, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 
-const AdminCodeInput = z.object({ code: z.string().min(1) });
+// Enforce strict input validation (length limits) to mitigate Denial of Service (DoS) and memory exhaustion risks.
+export const AdminCodeInput = z.object({ code: z.string().min(1).max(256) });
 
+/**
+ * Constant-time comparison using SHA-256 digests to prevent timing attack side-channels
+ * when verifying sensitive authorization credentials.
+ */
 export function safeCompare(a: string, b: string): boolean {
   const hashA = createHash("sha256").update(a).digest();
   const hashB = createHash("sha256").update(b).digest();
