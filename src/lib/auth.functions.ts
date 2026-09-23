@@ -5,6 +5,9 @@ import { z } from "zod";
 const AdminCodeInput = z.object({ code: z.string().min(1) });
 
 export function safeCompare(a: string, b: string): boolean {
+  if (typeof a !== "string" || typeof b !== "string") {
+    return false;
+  }
   const hashA = createHash("sha256").update(a).digest();
   const hashB = createHash("sha256").update(b).digest();
   return timingSafeEqual(hashA, hashB);
