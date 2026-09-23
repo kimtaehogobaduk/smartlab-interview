@@ -1,0 +1,3 @@
+## 2026-03-01 - O(N) Submission Grouping & Memoization in Scoring Algorithms
+**Learning:** In scoring/leaderboard features, repeated inner array scans (`.filter()` and `.find()`) inside nested candidate and criterion loops quickly create an O(N³) bottleneck. Pre-grouping submissions into an O(1) Map by candidate ID and using direct index access reduced leaderboard computation from O(C * S * K + K * C) to linear time relative to submissions and criteria. In addition, memoizing the calculation with `useMemo` in UI components prevents expensive re-computations when unrelated component state changes.
+**Action:** Always pre-index arrays into Maps/Float64Arrays before executing scoring/aggregation loops, and wrap heavy computations in `useMemo`.
