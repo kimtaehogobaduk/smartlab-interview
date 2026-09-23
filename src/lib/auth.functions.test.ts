@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { safeCompare } from "./auth.functions";
+import { AdminCodeInput, safeCompare } from "./auth.functions";
 
 describe("safeCompare", () => {
   it("returns true for matching strings", () => {
@@ -12,5 +12,20 @@ describe("safeCompare", () => {
 
   it("returns false for non-matching strings of different lengths", () => {
     expect(safeCompare("secret123", "secret")).toBe(false);
+  });
+});
+
+describe("AdminCodeInput validation", () => {
+  it("accepts valid admin code lengths", () => {
+    expect(AdminCodeInput.parse({ code: "secret123" })).toEqual({ code: "secret123" });
+  });
+
+  it("rejects empty admin codes", () => {
+    expect(() => AdminCodeInput.parse({ code: "" })).toThrow();
+  });
+
+  it("rejects overly long admin codes (DoS prevention)", () => {
+    const longCode = "a".repeat(257);
+    expect(() => AdminCodeInput.parse({ code: longCode })).toThrow();
   });
 });
