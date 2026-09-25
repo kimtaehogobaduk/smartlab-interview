@@ -1,0 +1,3 @@
+## 2026-03-31 - Pre-indexing Leaderboard Submissions and Scores with Map
+**Learning:** Leaderboard score aggregation functions (`buildLeaderboard` and `weightedTotal`) were executing repeated linear `.find()` and `.filter()` operations inside nested loops for every candidate, submission, and criterion ($O(C \cdot S \cdot K \cdot M)$). Pre-indexing submissions by `candidateId` and score maps by `criterionId` using JS `Map` data structures brought execution time down to $O(S \cdot (K + M) + C \cdot K)$.
+**Action:** Always pre-group linear arrays into `Map` lookups before entering rendering or aggregation loops when aggregating datasets in client memory.
