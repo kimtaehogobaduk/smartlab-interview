@@ -37,7 +37,8 @@ export async function callGatewayJson(
     if (response.status === 429) throw new Error("AI 요청이 많습니다. 잠시 후 다시 시도해 주세요.");
     if (response.status === 402)
       throw new Error("AI 크레딧이 부족합니다. 워크스페이스에 크레딧을 추가해 주세요.");
-    throw new Error(`AI 분석 실패 [${response.status}]: ${body.slice(0, 300)}`);
+    // Prevent leaking sensitive API response bodies/stack traces to the client
+    throw new Error(`AI 서비스 연동 중 오류가 발생했습니다. (상태 코드: ${response.status})`);
   }
 
   const payload = (await response.json()) as {
