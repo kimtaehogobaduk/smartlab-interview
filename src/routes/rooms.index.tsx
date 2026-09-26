@@ -60,11 +60,17 @@ function RoomLobbyPage() {
                     </Button>
                   ))}
               </div>
-              <Button asChild disabled={!interviewer} className="mt-6">
-                <Link to="/rooms/$roomId" params={{ roomId: selected }}>
+              {interviewer ? (
+                <Button asChild className="mt-6">
+                  <Link to="/rooms/$roomId" params={{ roomId: selected }}>
+                    대기 목록으로 입장 <ArrowRight />
+                  </Link>
+                </Button>
+              ) : (
+                <Button disabled className="mt-6">
                   대기 목록으로 입장 <ArrowRight />
-                </Link>
-              </Button>
+                </Button>
+              )}
             </CardContent>
           </Card>
         ) : null}
