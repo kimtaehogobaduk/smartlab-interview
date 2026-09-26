@@ -1,0 +1,3 @@
+## 2026-03-31 - Icon-Only Buttons and Range Inputs Accessibility
+**Learning:** Custom UI components (`AppShell`, `CandidateTable`) and complex evaluation forms in this app contain icon-only actions (back button, candidate removal, note submit) and range inputs without explicit `aria-label` attributes, rendering them non-descriptive for assistive technologies like screen readers.
+**Action:** Always verify that icon-only buttons (`<Button size="icon">` or icon `<Link>`) and range sliders (`<input type="range">`) include explicit `aria-label` or `aria-labelledby` attributes with clear context (e.g. including candidate name or criteria name).
