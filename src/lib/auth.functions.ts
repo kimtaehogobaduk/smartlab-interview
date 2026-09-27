@@ -10,11 +10,18 @@ export function safeCompare(a: string, b: string): boolean {
   return timingSafeEqual(hashA, hashB);
 }
 
+export async function checkAdminCode(code: string): Promise<{ valid: boolean }> {
+  const expected = process.env["ADMIN_ACCESS_CODE"];
+  // Fail secure: If access code is unconfigured or empty, deny authentication without leaking configuration details
+  if (!expected || expected.trim() === "") {
+    return { valid: false };
+  }
+  // Prevent timing attacks when comparing admin access code
+  return { valid: safeCompare(code, expected) };
+}
+
 export const verifyAdminCode = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => AdminCodeInput.parse(data))
   .handler(async ({ data }) => {
-    const expected = process.env["ADMIN_ACCESS_CODE"];
-    if (!expected) throw new Error("ADMIN_ACCESS_CODE가 설정되지 않았습니다.");
-    // Prevent timing attacks when comparing admin access code
-    return { valid: safeCompare(data.code, expected) };
+    return checkAdminCode(data.code);
   });
