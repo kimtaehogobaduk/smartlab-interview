@@ -1,0 +1,3 @@
+## 2026-03-30 - Optimization of Leaderboard Scoring Computations
+**Learning:** In React apps where leaderboard/scoring computations run inside render methods or memoized selectors, nested linear searches (`Array.find` inside candidate iterations and sort comparisons) quickly degrade performance as candidate and submission numbers grow ($O(C \cdot S \cdot K)$ complexity).
+**Action:** Group flat submissions upfront into a `Map<string, Submission[]>` ($O(S)$) and index submission scores into `Map<string, number>` ($O(1)$ lookups). Precompute tie-breaker comparison keys before array sorting to prevent repeated linear searches inside comparator callbacks.
