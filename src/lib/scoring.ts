@@ -135,6 +135,17 @@ export function buildLeaderboard(
   return items;
 }
 
+function sanitizeCsvCell(value: unknown): string {
+  const str = String(value ?? "");
+  // Prevent CSV Formula Injection (CWE-1236) by prefixing formula trigger characters (=, +, -, @, \t, \r) with '
+  const safeStr = /^[=+\-@\t\r]/.test(str) ? `'${str}` : str;
+  // Escape double quotes and wrap in double quotes if cell contains commas, quotes, or newlines
+  if (/[",\n\r]/.test(safeStr)) {
+    return `"${safeStr.replace(/"/g, '""')}"`;
+  }
+  return safeStr;
+}
+
 export function toCsv(rows: LeaderboardItem[], criteria: CriteriaConfig): string {
   const header = [
     "순위",
@@ -152,5 +163,5 @@ export function toCsv(rows: LeaderboardItem[], criteria: CriteriaConfig): string
     r.finalScore,
     ...criteria.items.map((c) => r.perCriterion.find((p) => p.criterionId === c.id)?.average ?? 0),
   ]);
-  return [header, ...body].map((line) => line.join(",")).join("\n");
+  return [header, ...body].map((line) => line.map(sanitizeCsvCell).join(",")).join("\n");
 }
