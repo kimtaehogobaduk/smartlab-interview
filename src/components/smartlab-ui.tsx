@@ -533,7 +533,7 @@ export function CandidateTable({
                   {!compact ? (
                     <div className="flex justify-end gap-2">
                       <select
-                        aria-label={`${candidate.name} 상태`}
+                        aria-label={`${candidate.name} 지원자 상태 변경`}
                         value={candidate.status}
                         onChange={(e) =>
                           setCandidateStatus(candidate.id, e.target.value as Candidate["status"])
@@ -548,6 +548,7 @@ export function CandidateTable({
                       <Button
                         size="icon"
                         variant="ghost"
+                        aria-label={`${candidate.name} 지원자 삭제`}
                         onClick={() => removeCandidate(candidate.id)}
                       >
                         <X />
