@@ -62,6 +62,7 @@ export function AppShell({
             <Link
               to={backTo}
               className="rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
+              aria-label="뒤로 가기"
             >
               <ArrowLeft className="size-4" />
             </Link>
@@ -549,6 +550,7 @@ export function CandidateTable({
                         size="icon"
                         variant="ghost"
                         onClick={() => removeCandidate(candidate.id)}
+                        aria-label={`${candidate.name} 지원자 삭제`}
                       >
                         <X />
                       </Button>
