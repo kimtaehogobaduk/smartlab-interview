@@ -1,0 +1,3 @@
+## 2025-05-18 - Map lookups and React memoization in scoring functions
+**Learning:** `buildLeaderboard` in `scoring.ts` previously filtered submissions per candidate ($O(N \cdot M)$) and performed linear array searches ($O(C \cdot S)$) for score criterion IDs inside nested candidate evaluation loops. Pre-grouping submissions into a Map and caching candidate score maps reduces computing time to $O(M + N \cdot C)$. Additionally, wrapping `buildLeaderboard` in `useMemo` in `Leaderboard` avoids recalculation on unrelated re-renders.
+**Action:** When working with leaderboard or batch score aggregations, pre-group datasets into Maps and memoize top-level component calculations.
